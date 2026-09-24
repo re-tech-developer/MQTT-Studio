@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#0f172a">
+<title>Re-Tech MQTT Studio</title>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg: #0f172a;
+  --bg2: #1e293b;
+  --bg3: #334155;
+  --panel: #1a2332;
+  --fg: #e2e8f0;
+  --fg-dim: #94a3b8;
+  --fg-mute: #64748b;
+  --accent: #6366f1;
+  --accent-hi: #818cf8;
+  --accent-soft: rgba(99,102,241,0.15);
+  --green: #10b981;
+  --red: #ef4444;
+  --yellow: #f59e0b;
+  --cyan: #06b6d4;
+  --border: #2a3647;
+  --border-hi: #3b4a63;
+  --hover: #263449;
+  --shadow: 0 4px 20px rgba(0,0,0,0.3);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+[data-theme="light"] {
+  --bg: #f8fafc;
+  --bg2: #ffffff;
+  --bg3: #f1f5f9;
+  --panel: #ffffff;
+  --fg: #0f172a;
+  --fg-dim: #475569;
+  --fg-mute: #94a3b8;
+  --accent: #4f46e5;
+  --accent-hi: #6366f1;
+  --accent-soft: rgba(79,70,229,0.1);
+  --green: #059669;
+  --red: #dc2626;
+  --yellow: #d97706;
+  --cyan: #0891b2;
+  --border: #e2e8f0;
+  --border-hi: #cbd5e1;
+  --hover: #f1f5f9;
+  --shadow: 0 4px 20px rgba(15,23,42,0.08);
+}
+
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 13.5px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.2s, color 0.2s;
+}
+.mono { font-family: 'JetBrains Mono', 'Consolas', monospace; }
+
+/* =============== HEADER =============== */
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 54px;
+  z-index: 50;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.3px;
+  color: var(--fg);
+  white-space: nowrap;
+}
+.brand-logo {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--accent), var(--cyan));
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 800; font-size: 14px;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.35);
+}
+.brand-name span { color: var(--accent-hi); }
+
+.conn-list { display: flex; gap: 6px; flex-wrap: wrap; }
+.conn-pill {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px 3px 8px;
+  font-size: 11.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: border-color 0.2s;
+}
+.conn-pill.on { border-color: rgba(16,185,129,0.4); }
+.conn-pill .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.15);
+}
+.conn-pill.on .dot {
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(16,185,129,0.15); }
+  50% { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+}
+.conn-pill .close {
+  cursor: pointer; color: var(--fg-mute);
+  font-size: 14px; padding: 0 2px;
+  transition: color 0.15s;
+}
+.conn-pill .close:hover { color: var(--red); }
+
+.spacer { flex: 1; min-width: 0; }
+
+/* =============== BUTTONS & INPUTS =============== */
+button {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 7px 13px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+button:hover { background: var(--accent-hi); }
+button:active { transform: scale(0.97); }
+button.ghost {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+button.ghost:hover { background: var(--hover); border-color: var(--border-hi); }
+button.icon-btn {
+  padding: 7px 9px;
+  background: var(--bg3);
+  color: var(--fg-dim);
+  border: 1px solid var(--border);
+}
+button.icon-btn:hover { color: var(--fg); background: var(--hover); }
+button.mini { padding: 3px 9px; font-size: 11px; }
+button.danger { background: var(--red); }
+button.danger:hover { background: #dc2626; }
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: 12.5px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  padding: 7px 11px;
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+input::placeholder, textarea::placeholder { color: var(--fg-mute); }
+select { cursor: pointer; }
+
+.search-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 320px;
+  min-width: 120px;
+}
+.search-wrap input { padding-left: 32px; }
+.search-wrap::before {
+  content: '🔍';
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.btn-file {
+  cursor: pointer;
+  background: var(--bg3);
+  color: var(--fg-dim);
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  font-size: 12.5px;
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+.btn-file:hover { background: var(--hover); color: var(--fg); }
+
+/* =============== MAIN LAYOUT =============== */
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 300px 1fr 280px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* =============== SIDEBARS =============== */
+aside {
+  background: var(--bg2);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+#sidebar { border-right: 1px solid var(--border); }
+#rightbar { border-left: 1px solid var(--border); }
+
+.sidebar-head {
+  padding: 10px 14px;
+  font-weight: 600;
+  color: var(--fg-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.badge {
+  background: var(--bg3);
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  font-weight: 600;
+}
+
+#tree {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px;
+  contain: strict;
+  will-change: scroll-position;
+}
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12.5px;
+  white-space: nowrap;
+  user-select: none;
+  transition: background 0.1s;
+  contain: layout style;
+}
+.tree-row:hover { background: var(--hover); }
+.tree-row.active {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+}
+.tree-row .arrow {
+  width: 14px;
+  color: var(--fg-mute);
+  font-size: 9px;
+  text-align: center;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+.tree-row .arrow.leaf { visibility: hidden; }
+.tree-row .name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+.tree-row .cnt {
+  font-size: 10px;
+  color: var(--fg-mute);
+  background: var(--bg3);
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.tree-row.active .cnt {
+  background: rgba(255,255,255,0.2);
+  color: white;
+}
+.tree-children {
+  margin-left: 13px;
+  border-left: 1px dashed var(--border-hi);
+  padding-left: 3px;
+}
+.tree-children.collapsed { display: none; }
+.spark { width: 46px; height: 14px; flex-shrink: 0; opacity: 0.85; }
+
+/* =============== CENTER =============== */
+#center {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg);
+}
+#detailHeader {
+  padding: 12px 16px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.topic-title {
+  font-weight: 600;
+  font-size: 14px;
+  word-break: break-all;
+  color: var(--fg);
+  font-family: 'JetBrains Mono', monospace;
+}
+.topic-meta {
+  font-size: 11.5px;
+  color: var(--fg-mute);
+  margin-top: 3px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.detail-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+.tabs {
+  display: flex;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 8px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  background: transparent;
+  color: var(--fg-dim);
+  border: none;
+  padding: 11px 16px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  font-weight: 500;
+  font-size: 12.5px;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.tab:hover { color: var(--fg); background: transparent; }
+.tab:active { transform: none; }
+.tab.active {
+  color: var(--accent-hi);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+.tab-content {
+  display: none;
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  min-height: 0;
+}
+.tab-content.active { display: block; }
+
+#payloadView {
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.65;
+  color: var(--fg);
+}
+.json-key { color: var(--accent-hi); font-weight: 500; }
+.json-str { color: var(--green); }
+.json-num { color: var(--yellow); }
+.json-bool { color: var(--cyan); }
+
+/* Diff */
+.diff-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.diff-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.diff-card h4 {
+  font-size: 11px;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.diff-val {
+  font-family: 'JetBrains Mono', monospace;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin: 3px 0;
+  font-size: 12px;
+  word-break: break-all;
+}
+.diff-added {
+  background: rgba(16,185,129,0.12);
+  color: var(--green);
+  border-left: 3px solid var(--green);
+}
+.diff-removed {
+  background: rgba(239,68,68,0.12);
+  color: var(--red);
+  border-left: 3px solid var(--red);
+}
+.diff-changed {
+  background: rgba(245,158,11,0.12);
+  color: var(--yellow);
+  border-left: 3px solid var(--yellow);
+}
+.diff-key { color: var(--fg-dim); font-weight: 600; }
+
+/* Chart */
+.chart-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.chart-controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+.chart-controls input { width: 200px; }
+#chartBox {
+  position: relative;
+  height: 280px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+/* History */
+#historyTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+#historyTable th, #historyTable td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+#historyTable th {
+  color: var(--fg-dim);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+  background: var(--bg2);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+#historyTable td:first-child { color: var(--fg-mute); width: 100px; }
+#historyTable tbody tr:hover { background: var(--hover); }
+
+/* Publish */
+#publishArea {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+#publishArea .row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+#pubTopic { flex: 1; min-width: 140px; font-family: 'JetBrains Mono', monospace; }
+#pubQos { width: 70px; }
+.chk {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--fg-dim);
+  cursor: pointer;
+  user-select: none;
+}
+.chk input { width: auto; }
+#pubPayload {
+  resize: vertical;
+  min-height: 62px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+/* =============== RIGHT BAR =============== */
+#watchlist, #alerts {
+  padding: 8px;
+  overflow-y: auto;
+  max-height: 200px;
+  flex-shrink: 0;
+}
+.watch-item, .alert-item {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  transition: border-color 0.15s;
+}
+.watch-item:hover { border-color: var(--accent); }
+.watch-item .t {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+}
+.watch-item .t:hover { color: var(--accent-hi); }
+.watch-item .v {
+  color: var(--green);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.alert-item { border-left: 3px solid var(--fg-mute); }
+.alert-item.fired {
+  border-color: var(--red);
+  border-left-color: var(--red);
+  background: rgba(239,68,68,0.08);
+  animation: alertPulse 1.5s infinite;
+}
+@keyframes alertPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(239,68,68,0); }
+}
+.alert-item .x {
+  cursor: pointer;
+  color: var(--fg-mute);
+  font-size: 14px;
+  padding: 0 3px;
+}
+.alert-item .x:hover { color: var(--red); }
+
+.empty-hint {
+  color: var(--fg-mute);
+  padding: 10px 8px;
+  font-size: 11.5px;
+  text-align: center;
+  font-style: italic;
+}
+
+#log {
+  flex: 1;
+  background: var(--bg);
+  overflow-y: auto;
+  padding: 8px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  min-height: 100px;
+  line-height: 1.6;
+}
+.log-line {
+  margin-bottom: 3px;
+  word-break: break-all;
+  display: flex;
+  gap: 6px;
+}
+.log-line .ts { color: var(--fg-mute); flex-shrink: 0; }
+.log-line .type { font-weight: 600; flex-shrink: 0; }
+.log-line .type.SYS { color: var(--accent-hi); }
+.log-line .type.MSG { color: var(--fg-dim); }
+.log-line .type.ERR { color: var(--red); }
+.log-line .type.ALT { color: var(--yellow); }
+.log-line .type.PUB { color: var(--green); }
+.log-line .msg { color: var(--fg); overflow: hidden; text-overflow: ellipsis; }
+
+/* =============== MODAL =============== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.15s;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal-backdrop.show { display: flex; }
+.modal {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  width: 500px;
+  max-width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+  animation: slideUp 0.2s;
+}
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.modal h3 {
+  margin-bottom: 16px;
+  color: var(--fg);
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--fg-dim);
+  font-weight: 500;
+}
+.form-grid label.full { grid-column: 1 / -1; }
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+/* =============== MOBILE BOTTOM NAV =============== */
+.mobile-nav {
+  display: none;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 6px;
+  gap: 4px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+}
+.mobile-nav button {
+  flex: 1;
+  background: transparent;
+  color: var(--fg-mute);
+  border: none;
+  padding: 8px 4px;
+  font-size: 10px;
+  flex-direction: column;
+  gap: 3px;
+  font-weight: 500;
+}
+.mobile-nav button.active { color: var(--accent-hi); }
+.mobile-nav button .ico { font-size: 16px; }
+
+/* =============== SCROLLBAR =============== */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-hi);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--fg-mute); }
+
+/* =============== RESPONSIVE =============== */
+@media (max-width: 1100px) {
+  main { grid-template-columns: 260px 1fr; }
+  #rightbar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 300px;
+    z-index: 70;
+    transform: translateX(100%);
+    transition: transform 0.25s;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.3);
+    padding-top: 60px;
+  }
+  #rightbar.open { transform: translateX(0); }
+}
+
+@media (max-width: 768px) {
+  body { font-size: 13px; padding-bottom: 58px; }
+  header { padding: 8px 10px; gap: 6px; min-height: 48px; }
+  .brand { font-size: 13.5px; }
+  .brand-logo { width: 24px; height: 24px; font-size: 12px; }
+  .brand-name { display: none; }
+  .brand-name.show-mobile { display: inline; }
+  .search-wrap { max-width: none; order: 10; width: 100%; }
+  .conn-list { max-width: 40%; overflow-x: auto; flex-wrap: nowrap; }
+  .conn-pill { flex-shrink: 0; }
+  header .icon-btn, header .btn-file { padding: 7px 9px; font-size: 11px; }
+  header .btn-file .lbl { display: none; }
+
+  main {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+  }
+  #sidebar {
+    position: fixed;
+    top: 48px;
+    left: 0;
+    bottom: 58px;
+    width: 85%;
+    max-width: 340px;
+    z-index: 65;
+    transform: translateX(-100%);
+    transition: transform 0.25s;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+  }
+  #sidebar.open { transform: translateX(0); }
+
+  #rightbar { top: 48px; bottom: 58px; padding-top: 0; }
+  #rightbar.open { transform: translateX(0); }
+
+  #detailHeader { padding: 10px 12px; flex-wrap: wrap; }
+  .topic-title { font-size: 13px; }
+  .detail-actions button { padding: 6px 10px; font-size: 11px; }
+  .detail-actions .lbl { display: none; }
+
+  .tabs { padding: 0 4px; }
+  .tab { padding: 10px 12px; font-size: 12px; }
+  .tab-content { padding: 12px; }
+
+  .diff-grid { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+
+  .mobile-nav { display: flex; }
+
+  #publishArea { padding: 10px 12px; }
+  #publishArea .row { flex-wrap: wrap; }
+  #pubTopic { width: 100%; flex: 1 1 100%; }
+  #pubQos, .chk { flex-shrink: 0; }
+  #btnPublish { flex: 1; justify-content: center; }
+
+  #chartBox { height: 220px; }
+}
+
+/* overlay for mobile drawer */
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 64;
+}
+.overlay.show { display: block; }
+
+/* Pause indicator */
+.paused-banner {
+  display: none;
+  background: var(--yellow);
+  color: #000;
+  text-align: center;
+  padding: 5px 10px;
+  font-weight: 600;
+  font-size: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.paused .paused-banner { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-logo">R</div>
+    <div class="brand-name show-mobile">Re-Tech <span>MQTT Studio</span></div>
+  </div>
+  <button id="btnMenu" class="icon-btn" title="Topics" style="display:none">☰</button>
+  <button id="btnAddConn">+ Broker</button>
+  <div class="conn-list" id="connList"></div>
+  <div class="spacer"></div>
+  <div class="search-wrap">
+    <input id="globalSearch" placeholder="Cari topik / payload...">
+  </div>
+  <button id="btnPause" class="icon-btn" title="Pause stream">⏸</button>
+  <button id="btnTheme" class="icon-btn" title="Theme">🌙</button>
+  <button id="btnExport" class="icon-btn" title="Export sesi">⬇</button>
+  <label class="btn-file" title="Import sesi">⬆<span class="lbl"> Import</span><input type="file" id="importFile" accept=".json" hidden></label>
+  <button id="btnRight" class="icon-btn" title="Watchlist & Alerts" style="display:none">⭐</button>
+</header>
+
+<div class="paused-banner">⏸ Stream dijeda — klik tombol Play untuk melanjutkan</div>
+
+<div class="overlay" id="overlay"></div>
+
+<main>
+  <aside id="sidebar">
+    <div class="sidebar-head">
+      <span>Topics</span>
+      <span id="topicCount" class="badge">0</span>
+    </div>
+    <div id="tree"></div>
+  </aside>
+
+  <section id="center">
+    <div id="detailHeader">
+      <div style="min-width:0; flex:1">
+        <div class="topic-title" id="selectedTopic">Pilih topik untuk melihat detail</div>
+        <div class="topic-meta" id="selectedMeta">
+          <span>Re-Tech MQTT Studio</span>
+        </div>
+      </div>
+      <div class="detail-actions">
+        <button id="btnWatch" class="ghost">⭐<span class="lbl"> Watch</span></button>
+        <button id="btnClearPayload" class="ghost">🗑<span class="lbl"> Clear</span></button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="payload">Payload</button>
+      <button class="tab" data-tab="diff">Diff</button>
+      <button class="tab" data-tab="chart">Chart</button>
+      <button class="tab" data-tab="history">History</button>
+    </div>
+
+    <div class="tab-content active" id="tab-payload">
+      <pre id="payloadView">(belum ada payload)</pre>
+    </div>
+
+    <div class="tab-content" id="tab-diff">
+      <div class="diff-grid" id="diffView">
+        <div class="empty-hint" style="grid-column:1/-1">Pilih topik yang memiliki minimal 2 pesan untuk melihat perbandingan</div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-chart">
+      <div class="chart-controls">
+        <label>JSONPath: <input id="jsonPath" placeholder="suhu / data.suhu / $.suhu"></label>
+        <label>Window:
+          <select id="chartWindow">
+            <option value="60">1 menit</option>
+            <option value="300" selected>5 menit</option>
+            <option value="900">15 menit</option>
+            <option value="3600">1 jam</option>
+          </select>
+        </label>
+        <button id="btnApplyChart">Apply</button>
+      </div>
+      <div id="chartBox"><canvas id="chart"></canvas></div>
+    </div>
+
+    <div class="tab-content" id="tab-history">
+      <table id="historyTable">
+        <thead><tr><th>Waktu</th><th>Payload</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="publishArea">
+      <div class="row">
+        <input id="pubTopic" placeholder="topic tujuan">
+        <select id="pubQos">
+          <option value="0">QoS 0</option>
+          <option value="1">QoS 1</option>
+          <option value="2">QoS 2</option>
+        </select>
+        <label class="chk"><input type="checkbox" id="pubRetain"> retain</label>
+        <button id="btnPublish">📤 Publish</button>
+      </div>
+      <textarea id="pubPayload" placeholder='{"hello":"world"}'></textarea>
+    </div>
+  </section>
+
+  <aside id="rightbar">
+    <div class="sidebar-head">
+      <span>⭐ Watchlist</span>
+      <button id="btnAddWatch" class="mini">+</button>
+    </div>
+    <div id="watchlist"><div class="empty-hint">Belum ada topik di-watch</div></div>
+
+    <div class="sidebar-head">
+      <span>🔔 Alerts</span>
+      <div>
+        <button id="btnAskNotif" class="mini" title="Izinkan notifikasi">🔕</button>
+        <button id="btnAddAlert" class="mini" title="Tambah alert">+</button>
+      </div>
+    </div>
+    <div id="alerts"><div class="empty-hint">Belum ada alert</div></div>
+
+    <div class="sidebar-head">📜 Log</div>
+    <div id="log"></div>
+  </aside>
+</main>
+
+<nav class="mobile-nav">
+  <button data-mnav="topics"><span class="ico">🌳</span>Topics</button>
+  <button data-mnav="detail" class="active"><span class="ico">📄</span>Detail</button>
+  <button data-mnav="watch"><span class="ico">⭐</span>Watch</button>
+  <button data-mnav="log"><span class="ico">📜</span>Log</button>
+</nav>
+
+<!-- MODAL CONNECTION -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h3>🔌 Koneksi Broker</h3>
+    <div class="form-grid">
+      <label class="full">Nama profil<input id="cName" placeholder="Broker Saya"></label>
+      <label>Host<input id="cHost" placeholder="test.mosquitto.org"></label>
+      <label>Port (WS)<input id="cPort" value="8081"></label>
+      <label>Protocol
+        <select id="cProto"><option value="wss">wss (secure)</option><option value="ws">ws</option></select>
+      </label>
+      <label>Base path<input id="cPath" value="/mqtt"></label>
+      <label>Username<input id="cUser" placeholder="opsional"></label>
+      <label>Password<input id="cPass" type="password" placeholder="opsional"></label>
+    </div>
+    <div class="modal-actions">
+      <button id="btnCancelConn" class="ghost">Batal</button>
+      <button id="btnSaveConn">Simpan & Connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ALERT -->
+<div class="modal-backdrop" id="alertModal">
+  <div class="modal">
+    <h3>🔔 Tambah Alert</h3>
+    <div class="form-grid">
+      <label class="full">Topic<input id="aTopic" placeholder="sensor/suhu"></label>
+      <label>Operator
+        <select id="aOp">
+          <option value="&gt;">&gt; lebih besar</option>
+          <option value="&lt;">&lt; lebih kecil</option>
+          <option value="==">== sama dengan</option>
+          <option value="!=">!= tidak sama</option>
+          <option value="contains">contains teks</option>
+        </select>
+      </label>
+      <label>Nilai<input id="aVal" placeholder="30"></label>
+      <label class="full">Catatan<input id="aNote" placeholder="Suhu terlalu tinggi!"></label>
+    </div>
+    <div class="modal-actions">
+      <button id="btnCancelAlert" class="ghost">Batal</button>
+      <button id="btnSaveAlert">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =================================================================
+   RE-TECH MQTT STUDIO
+   Single-file MQTT dashboard — optimized for performance & mobile
+   ================================================================= */
+
+/* =============== STATE =============== */
+const state = {
+  connections: new Map(),
+  topics: new Map(),
+  alerts: [],
+  selectedKey: null,
+  collapsed: new Set(),
+  search: '',
+  theme: localStorage.getItem('retech-theme') || 'dark',
+  chart: null,
+  chartTopicKey: null,
+  jsonPath: '',
+  chartWindow: 300,
+  paused: false,
+  dirty: { tree: false, watch: false, alerts: false, log: false, chart: false },
+  dirtyKeys: new Set(),
+  lastTreeSignature: '',
+  logBuffer: [],
+};
+
+/* =============== HELPERS =============== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const now = () => Date.now();
+
+/* =============== BATCHED RENDER (anti-lag) =============== */
+function markDirty(area, key) {
+  state.dirty[area] = true;
+  if (key) state.dirtyKeys.add(key);
+}
+function flushUI() {
+  if (state.dirty.tree) { renderTree(); state.dirty.tree = false; }
+  if (state.dirty.watch) { renderWatchlist(); state.dirty.watch = false; }
+  if (state.dirty.alerts) { renderAlerts(); state.dirty.alerts = false; }
+  if (state.dirty.log) { flushLog(); state.dirty.log = false; }
+  if (state.dirty.chart && state.chartTopicKey) { updateChart(state.chartTopicKey); state.dirty.chart = false; }
+  if (state.dirtyKeys.size && state.selectedKey) {
+    if (state.dirtyKeys.has(state.selectedKey)) {
+      renderPayload(state.selectedKey);
+      renderDiff(state.selectedKey);
+      renderHistory(state.selectedKey);
+    }
+    state.dirtyKeys.clear();
+  }
+}
+let uiTick = false;
+function scheduleFlush() {
+  if (uiTick) return;
+  uiTick = true;
+  requestAnimationFrame(() => {
+    uiTick = false;
+    try { flushUI(); } catch (e) { console.error(e); }
+  });
+}
+// throttle untuk chart (max 4fps)
+let lastChartUpdate = 0;
+function scheduleChart() {
+  const t = performance.now();
+  if (t - lastChartUpdate < 250) { markDirty('chart'); return; }
+  lastChartUpdate = t;
+  markDirty('chart');
+  scheduleFlush();
+}
+
+/* =============== LOG (buffered, max 150) =============== */
+function log(type, msg) {
+  state.logBuffer.push({ t: now(), type, msg });
+  if (state.logBuffer.length > 150) state.logBuffer.shift();
+  markDirty('log');
+  scheduleFlush();
+}
+function flushLog() {
+  const el = $('log');
+  const frag = document.createDocumentFragment();
+  for (const item of state.logBuffer) {
+    const div = document.createElement('div');
+    div.className = 'log-line';
+    div.innerHTML = `<span class="ts">${new Date(item.t).toLocaleTimeString()}</span><span class="type ${item.type}">${item.type}</span><span class="msg">${esc(item.msg)}</span>`;
+    frag.appendChild(div);
+  }
+  el.innerHTML = '';
+  el.appendChild(frag);
+  el.scrollTop = el.scrollHeight;
+}
+
+/* =============== THEME =============== */
+document.documentElement.setAttribute('data-theme', state.theme);
+$('btnTheme').textContent = state.theme === 'dark' ? '🌙' : '☀️';
+$('btnTheme').onclick = () => {
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', state.theme);
+  localStorage.setItem('retech-theme', state.theme);
+  $('btnTheme').textContent = state.theme === 'dark' ? '🌙' : '☀️';
+  if (state.chart) {
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    state.chart.data.datasets[0].borderColor = accent;
+  }
+};
+
+/* =============== RESPONSIVE MENU =============== */
+function updateResponsive() {
+  const mobile = window.innerWidth <= 768;
+  const tablet = window.innerWidth <= 1100;
+  $('btnMenu').style.display = mobile ? 'inline-flex' : 'none';
+  $('btnRight').style.display = mobile ? 'inline-flex' : 'none';
+}
+updateResponsive();
+window.addEventListener('resize', updateResponsive);
+
+$('btnMenu').onclick = () => {
+  $('sidebar').classList.toggle('open');
+  $('overlay').classList.toggle('show', $('sidebar').classList.contains('open'));
+};
+$('btnRight').onclick = () => {
+  $('rightbar').classList.toggle('open');
+  $('overlay').classList.toggle('show', $('rightbar').classList.contains('open'));
+};
+$('overlay').onclick = () => {
+  $('sidebar').classList.remove('open');
+  $('rightbar').classList.remove('open');
+  $('overlay').classList.remove('show');
+};
+document.querySelectorAll('.mobile-nav button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.mobile-nav button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    const v = b.dataset.mnav;
+    $('sidebar').classList.remove('open');
+    $('rightbar').classList.remove('open');
+    $('overlay').classList.remove('show');
+    if (v === 'topics') { $('sidebar').classList.add('open'); $('overlay').classList.add('show'); }
+    if (v === 'watch') { $('rightbar').classList.add('open'); $('overlay').classList.add('show'); }
+    if (v === 'log') { $('rightbar').classList.add('open'); $('overlay').classList.add('show'); setTimeout(() => $('log').scrollIntoView({behavior:'smooth'}), 100); }
+  };
+});
+
+/* =============== PAUSE =============== */
+$('btnPause').onclick = () => {
+  state.paused = !state.paused;
+  document.body.classList.toggle('paused', state.paused);
+  $('btnPause').textContent = state.paused ? '▶' : '⏸';
+  $('btnPause').title = state.paused ? 'Resume stream' : 'Pause stream';
+  log('SYS', state.paused ? 'Stream dijeda' : 'Stream dilanjutkan');
+};
+
+/* =============== CONNECTION =============== */
+$('btnAddConn').onclick = () => {
+  ['cName','cHost','cUser','cPass'].forEach(id => $(id).value = '');
+  $('cPort').value = '8081';
+  $('cProto').value = 'wss';
+  $('cPath').value = '/mqtt';
+  $('modalBackdrop').classList.add('show');
+  setTimeout(() => $('cHost').focus(), 100);
+};
+$('btnCancelConn').onclick = () => $('modalBackdrop').classList.remove('show');
+$('btnSaveConn').onclick = () => {
+  const cfg = {
+    name: $('cName').value.trim() || $('cHost').value.trim() || 'Broker',
+    host: $('cHost').value.trim(),
+    port: $('cPort').value.trim(),
+    proto: $('cProto').value,
+    path: $('cPath').value.trim() || '/mqtt',
+    user: $('cUser').value.trim(),
+    pass: $('cPass').value,
+  };
+  if (!cfg.host || !cfg.port) return alert('Host & port wajib diisi');
+  $('modalBackdrop').classList.remove('show');
+  connectBroker(cfg);
+};
+
+function connectBroker(cfg) {
+  const id = 'c' + Math.random().toString(36).slice(2, 8);
+  const url = `${cfg.proto}://${cfg.host}:${cfg.port}${cfg.path}`;
+  const opts = {
+    clientId: 'retech_' + Math.random().toString(16).slice(2, 10),
+    clean: true,
+    connectTimeout: 8000,
+    reconnectPeriod: 3000,
+  };
+  if (cfg.user) opts.username = cfg.user;
+  if (cfg.pass) opts.password = cfg.pass;
+
+  let client;
+  try { client = mqtt.connect(url, opts); }
+  catch (e) { log('ERR', `${cfg.name}: ${e.message}`); return; }
+
+  const conn = { ...cfg, id, url, client, status: 'connecting', msgQueue: 0 };
+  state.connections.set(id, conn);
+  renderConnPills();
+
+  client.on('connect', () => {
+    conn.status = 'online';
+    renderConnPills();
+    log('SYS', `${cfg.name} → ${url}`);
+    client.subscribe('#', { qos: 0 }, err => {
+      if (err) log('ERR', `${cfg.name} subscribe gagal: ${err.message}`);
+    });
+  });
+  client.on('message', (topic, payload) => {
+    if (state.paused) return;
+    onMessage(id, topic, payload.toString());
+  });
+  client.on('error', err => log('ERR', `${cfg.name}: ${err.message}`));
+  client.on('close', () => { conn.status = 'offline'; renderConnPills(); });
+}
+
+function renderConnPills() {
+  const box = $('connList');
+  box.innerHTML = '';
+  for (const conn of state.connections.values()) {
+    const pill = document.createElement('div');
+    pill.className = 'conn-pill' + (conn.status === 'online' ? ' on' : '');
+    pill.innerHTML = `<span class="dot"></span><span>${esc(conn.name)}</span><span class="close" title="Disconnect">✕</span>`;
+    pill.querySelector('.close').onclick = e => {
+      e.stopPropagation();
+      conn.client.end(true);
+      state.connections.delete(conn.id);
+      for (const k of [...state.topics.keys()]) if (k.startsWith(conn.id + '::')) state.topics.delete(k);
+      renderConnPills();
+      markDirty('tree'); scheduleFlush();
+    };
+    box.appendChild(pill);
+  }
+}
+
+/* =============== MESSAGE HANDLER =============== */
+function onMessage(connId, topic, payload) {
+  const key = connId + '::' + topic;
+  let rec = state.topics.get(key);
+  if (!rec) {
+    rec = {
+      connId, topic, count: 0,
+      lastPayload: null, prevPayload: null,
+      lastTime: 0, history: [], watched: false,
+    };
+    state.topics.set(key, rec);
+  }
+  rec.prevPayload = rec.lastPayload;
+  rec.lastPayload = payload;
+  rec.lastTime = now();
+  rec.count++;
+  rec.history.push({ t: rec.lastTime, p: payload });
+  if (rec.history.length > 200) rec.history.shift(); // ring buffer
+
+  checkAlerts(rec);
+
+  markDirty('tree', key);
+  if (rec.watched) markDirty('watch');
+  if (state.selectedKey === key) state.dirtyKeys.add(key);
+  if (state.chartTopicKey === key) scheduleChart();
+  scheduleFlush();
+}
+
+/* =============== TREE =============== */
+function buildTree() {
+  const root = { name: '', children: new Map(), key: null, count: 0 };
+  for (const [key, rec] of state.topics) {
+    if (state.search && !matchSearch(rec)) continue;
+    const parts = rec.topic.split('/');
+    let node = root;
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (!node.children.has(p)) node.children.set(p, { name: p, children: new Map(), key: null, count: 0 });
+      node = node.children.get(p);
+      if (i === parts.length - 1) {
+        node.key = key;
+        node.count = rec.count;
+        node.spark = rec.history.slice(-25).map(h => parseFloat(h.p));
+      }
+    }
+  }
+  return root;
+}
+function matchSearch(rec) {
+  const q = state.search.toLowerCase();
+  if (rec.topic.toLowerCase().includes(q)) return true;
+  if (rec.lastPayload && rec.lastPayload.length < 500 && rec.lastPayload.toLowerCase().includes(q)) return true;
+  if (q.length > 2 && q.startsWith('/') && q.endsWith('/')) {
+    try { return new RegExp(q.slice(1, -1), 'i').test(rec.topic); } catch {}
+  }
+  return false;
+}
+function treeSignature(root) {
+  // untuk deteksi perubahan struktur
+  let s = '';
+  const walk = (n, p) => {
+    const keys = [...n.children.keys()].sort();
+    for (const k of keys) {
+      const c = n.children.get(k);
+      const path = p ? p + '/' + k : k;
+      s += path + '|' + (state.collapsed.has(path) ? '0' : '1') + '|' + (c.count || 0) + ';';
+      walk(c, path);
+    }
+  };
+  walk(root, '');
+  return s + '::' + state.selectedKey + '::' + state.search;
+}
+function renderTree() {
+  const treeEl = $('tree');
+  const root = buildTree();
+  const sig = treeSignature(root);
+  if (sig === state.lastTreeSignature) return;
+  state.lastTreeSignature = sig;
+
+  const frag = document.createDocumentFragment();
+  renderChildren(root, frag, '');
+  treeEl.innerHTML = '';
+  treeEl.appendChild(frag);
+  $('topicCount').textContent = state.topics.size;
+}
+function renderChildren(node, parent, pathPrefix) {
+  const keys = [...node.children.keys()].sort();
+  for (const k of keys) {
+    const child = node.children.get(k);
+    const path = pathPrefix ? pathPrefix + '/' + k : k;
+    const row = document.createElement('div');
+    row.className = 'tree-row';
+    const hasChildren = child.children.size > 0;
+    const collapsed = state.collapsed.has(path);
+    if (child.key && state.selectedKey === child.key) row.classList.add('active');
+    const arrow = hasChildren ? (collapsed ? '▶' : '▼') : '';
+    const star = state.topics.get(child.key)?.watched ? '⭐ ' : '';
+    row.innerHTML = `
+      <span class="arrow ${hasChildren ? '' : 'leaf'}">${arrow}</span>
+      <span class="name">${star}${esc(k)}</span>
+      ${child.spark && child.spark.filter(v => !isNaN(v)).length > 3 ? sparkSvg(child.spark) : ''}
+      ${child.count ? `<span class="cnt">${child.count}</span>` : ''}
+    `;
+    row.onclick = e => {
+      if (hasChildren && (e.target.classList.contains('arrow') || !child.key)) {
+        if (collapsed) state.collapsed.delete(path); else state.collapsed.add(path);
+        state.lastTreeSignature = '';
+        renderTree();
+        return;
+      }
+      if (child.key) {
+        selectTopic(child.key);
+        // auto-close di mobile
+        if (window.innerWidth <= 768) {
+          $('sidebar').classList.remove('open');
+          $('overlay').classList.remove('show');
+        }
+      }
+    };
+    parent.appendChild(row);
+    if (hasChildren) {
+      const kids = document.createElement('div');
+      kids.className = 'tree-children' + (collapsed ? ' collapsed' : '');
+      parent.appendChild(kids);
+      renderChildren(child, kids, path);
+    }
+  }
+}
+function sparkSvg(arr) {
+  const valid = arr.filter(v => !isNaN(v));
+  if (valid.length < 3) return '';
+  const min = Math.min(...valid), max = Math.max(...valid);
+  const range = max - min || 1;
+  const step = 46 / (valid.length - 1);
+  let d = '';
+  for (let i = 0; i < valid.length; i++) {
+    const x = i * step;
+    const y = 12 - ((valid[i] - min) / range) * 10;
+    d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
+  }
+  return `<svg class="spark" viewBox="0 0 46 14"><path d="${d}" fill="none" stroke="currentColor" stroke-width="1.3" opacity="0.7"/></svg>`;
+}
+
+/* =============== SELECT TOPIC =============== */
+function selectTopic(key) {
+  state.selectedKey = key;
+  const rec = state.topics.get(key);
+  if (!rec) return;
+  $('selectedTopic').textContent = rec.topic;
+  $('selectedMeta').innerHTML = `
+    <span>📨 ${rec.count} pesan</span>
+    <span>🕐 ${new Date(rec.lastTime).toLocaleTimeString()}</span>
+  `;
+  $('pubTopic').value = rec.topic;
+  $('btnWatch').innerHTML = rec.watched ? '⭐<span class="lbl"> Unwatch</span>' : '⭐<span class="lbl"> Watch</span>';
+  renderPayload(key);
+  renderDiff(key);
+  renderHistory(key);
+  state.chartTopicKey = key;
+  scheduleChart();
+  state.lastTreeSignature = '';
+  markDirty('tree'); scheduleFlush();
+}
+
+function renderPayload(key) {
+  const rec = state.topics.get(key);
+  if (!rec) return;
+  const el = $('payloadView');
+  const p = rec.lastPayload ?? '(null)';
+  if (p.length > 20000) {
+    el.textContent = p.slice(0, 20000) + '\n\n… (payload terlalu panjang, dipotong 20KB)';
+    return;
+  }
+  try {
+    const obj = JSON.parse(p);
+    el.innerHTML = syntaxHighlight(JSON.stringify(obj, null, 2));
+  } catch {
+    el.textContent = p;
+  }
+}
+function syntaxHighlight(json) {
+  return esc(json).replace(
+    /("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+    m => {
+      let cls = 'json-num';
+      if (/^"/.test(m)) cls = /:$/.test(m) ? 'json-key' : 'json-str';
+      else if (/true|false/.test(m)) cls = 'json-bool';
+      else if (/null/.test(m)) cls = 'json-bool';
+      return `<span class="${cls}">${m}</span>`;
+    });
+}
+
+/* =============== DIFF =============== */
+function renderDiff(key) {
+  const rec = state.topics.get(key);
+  const box = $('diffView');
+  if (!rec || rec.prevPayload === null) {
+    box.innerHTML = '<div class="empty-hint" style="grid-column:1/-1">Pilih topik yang memiliki minimal 2 pesan untuk melihat perbandingan</div>';
+    return;
+  }
+  let a, b;
+  try { a = JSON.parse(rec.prevPayload); } catch { a = rec.prevPayload; }
+  try { b = JSON.parse(rec.lastPayload); } catch { b = rec.lastPayload; }
+
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
+    const same = a === b;
+    box.innerHTML = `
+      <div class="diff-card"><h4>Sebelum</h4><div class="diff-val ${same ? '' : 'diff-removed'}">${esc(a)}</div></div>
+      <div class="diff-card"><h4>Sesudah</h4><div class="diff-val ${same ? '' : 'diff-added'}">${esc(b)}</div></div>
+    `;
+    return;
+  }
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  const rowsA = [], rowsB = [];
+  for (const k of keys) {
+    const va = JSON.stringify(a[k]), vb = JSON.stringify(b[k]);
+    let clsA = '', clsB = '';
+    if (!(k in a)) clsB = 'diff-added';
+    else if (!(k in b)) clsA = 'diff-removed';
+    else if (va !== vb) { clsA = 'diff-changed'; clsB = 'diff-changed'; }
+    rowsA.push(`<div class="diff-val ${clsA}"><span class="diff-key">${esc(k)}:</span> ${esc(va ?? '')}</div>`);
+    rowsB.push(`<div class="diff-val ${clsB}"><span class="diff-key">${esc(k)}:</span> ${esc(vb ?? '')}</div>`);
+  }
+  box.innerHTML = `
+    <div class="diff-card"><h4>Sebelum</h4>${rowsA.join('')}</div>
+    <div class="diff-card"><h4>Sesudah</h4>${rowsB.join('')}</div>
+  `;
+}
+
+/* =============== HISTORY =============== */
+function renderHistory(key) {
+  const rec = state.topics.get(key);
+  const tb = $('historyTable').querySelector('tbody');
+  if (!rec) { tb.innerHTML = ''; return; }
+  const items = rec.history.slice(-100).reverse();
+  const frag = document.createDocumentFragment();
+  for (const h of items) {
+    const tr = document.createElement('tr');
+    const p = h.p.length > 300 ? h.p.slice(0, 300) + '…' : h.p;
+    tr.innerHTML = `<td>${new Date(h.t).toLocaleTimeString()}</td><td>${esc(p)}</td>`;
+    frag.appendChild(tr);
+  }
+  tb.innerHTML = '';
+  tb.appendChild(frag);
+}
+
+/* =============== CHART =============== */
+function extractValue(payload, path) {
+  if (!path) {
+    const n = parseFloat(payload);
+    return isNaN(n) ? null : n;
+  }
+  let obj;
+  try { obj = JSON.parse(payload); } catch { return null; }
+  const parts = path.replace(/^\$\.?/, '').split('.').filter(Boolean);
+  let cur = obj;
+  for (const p of parts) {
+    if (cur == null) return null;
+    cur = cur[p];
+  }
+  const n = parseFloat(cur);
+  return isNaN(n) ? null : n;
+}
+function updateChart(key) {
+  if (!key) return;
+  const rec = state.topics.get(key);
+  if (!rec) return;
+  const win = state.chartWindow * 1000;
+  const cutoff = now() - win;
+  const points = [];
+  for (const h of rec.history) {
+    if (h.t < cutoff) continue;
+    const v = extractValue(h.p, state.jsonPath);
+    if (v !== null) points.push({ x: h.t, y: v });
+  }
+
+  if (!state.chart) {
+    const ctx = $('chart').getContext('2d');
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    state.chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [{
+          label: rec.topic,
+          data: points,
+          borderColor: accent,
+          backgroundColor: 'rgba(99,102,241,0.12)',
+          tension: 0.3,
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          borderWidth: 2,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        parsing: false,
+        normalized: true,
+        spanGaps: true,
+        interaction: { intersect: false, mode: 'nearest' },
+        scales: {
+          x: {
+            type: 'linear',
+            ticks: {
+              color: '#94a3b8',
+              maxTicksLimit: 6,
+              callback: v => new Date(v).toLocaleTimeString().slice(0, 8),
+            },
+            grid: { color: 'rgba(148,163,184,0.1)' },
+          },
+          y: {
+            ticks: { color: '#94a3b8', maxTicksLimit: 6 },
+            grid: { color: 'rgba(148,163,184,0.1)' },
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: items => new Date(items[0].parsed.x).toLocaleTimeString(),
+            }
+          }
+        }
+      }
+    });
+  } else {
+    state.chart.data.datasets[0].label = rec.topic;
+    state.chart.data.datasets[0].data = points;
+    state.chart.update('none');
+  }
+}
+
+/* =============== PUBLISH =============== */
+$('btnPublish').onclick = () => {
+  const topic = $('pubTopic').value.trim();
+  const payload = $('pubPayload').value;
+  const qos = parseInt($('pubQos').value, 10);
+  const retain = $('pubRetain').checked;
+  if (!topic) return alert('Topik wajib diisi');
+  if (state.connections.size === 0) return alert('Belum ada koneksi broker');
+  let sent = 0;
+  for (const conn of state.connections.values()) {
+    if (conn.status !== 'online') continue;
+    conn.client.publish(topic, payload, { qos, retain }, err => {
+      if (err) log('ERR', `publish ${conn.name}: ${err.message}`);
+    });
+    sent++;
+  }
+  log('PUB', `→ ${topic} [q${qos}${retain ? ' R' : ''}] ×${sent}`);
+};
+
+/* =============== WATCHLIST =============== */
+function renderWatchlist() {
+  const box = $('watchlist');
+  const watched = [...state.topics.values()].filter(r => r.watched);
+  if (watched.length === 0) {
+    box.innerHTML = '<div class="empty-hint">Belum ada topik di-watch</div>';
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  for (const rec of watched) {
+    const key = rec.connId + '::' + rec.topic;
+    const div = document.createElement('div');
+    div.className = 'watch-item';
+    div.innerHTML = `<span class="t" title="${esc(rec.topic)}">${esc(rec.topic)}</span><span class="v">${esc((rec.lastPayload || '').slice(0, 30))}</span>`;
+    div.querySelector('.t').onclick = () => {
+      selectTopic(key);
+      if (window.innerWidth <= 768) {
+        $('rightbar').classList.remove('open');
+        $('overlay').classList.remove('show');
+      }
+    };
+    frag.appendChild(div);
+  }
+  box.innerHTML = '';
+  box.appendChild(frag);
+}
+$('btnWatch').onclick = () => {
+  if (!state.selectedKey) return;
+  const rec = state.topics.get(state.selectedKey);
+  if (!rec) return;
+  rec.watched = !rec.watched;
+  $('btnWatch').innerHTML = rec.watched ? '⭐<span class="lbl"> Unwatch</span>' : '⭐<span class="lbl"> Watch</span>';
+  markDirty('watch'); markDirty('tree'); state.lastTreeSignature = ''; scheduleFlush();
+};
+$('btnAddWatch').onclick = () => {
+  if (!state.selectedKey) return alert('Pilih topik dulu di tree');
+  const rec = state.topics.get(state.selectedKey);
+  rec.watched = true;
+  markDirty('watch'); markDirty('tree'); state.lastTreeSignature = ''; scheduleFlush();
+};
+
+/* =============== ALERTS =============== */
+$('btnAskNotif').onclick = () => {
+  if ('Notification' in window) {
+    Notification.requestPermission().then(p => {
+      $('btnAskNotif').textContent = p === 'granted' ? '🔔' : '🔕';
+      log('SYS', 'Notifikasi: ' + p);
+    });
+  }
+};
+function renderAlerts() {
+  const box = $('alerts');
+  if (state.alerts.length === 0) {
+    box.innerHTML = '<div class="empty-hint">Belum ada alert</div>';
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  for (const a of state.alerts) {
+    const div = document.createElement('div');
+    div.className = 'alert-item' + (a.fired ? ' fired' : '');
+    div.innerHTML = `<span title="${esc(a.note || '')}" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.topic)} ${esc(a.op)} ${esc(String(a.val))}</span><span class="x" title="Hapus">✕</span>`;
+    div.querySelector('.x').onclick = () => {
+      state.alerts = state.alerts.filter(x => x.id !== a.id);
+      markDirty('alerts'); scheduleFlush();
+    };
+    frag.appendChild(div);
+  }
+  box.innerHTML = '';
+  box.appendChild(frag);
+}
+function checkAlerts(rec) {
+  let changed = false;
+  for (const a of state.alerts) {
+    if (!rec.topic.includes(a.topic)) continue;
+    let v = extractValue(rec.lastPayload, '');
+    if (v === null) v = rec.lastPayload;
+    let hit = false;
+    const numV = parseFloat(v), numA = parseFloat(a.val);
+    switch (a.op) {
+      case '>': hit = numV > numA; break;
+      case '<': hit = numV < numA; break;
+      case '==': hit = String(v) === String(a.val); break;
+      case '!=': hit = String(v) !== String(a.val); break;
+      case 'contains': hit = String(v).includes(String(a.val)); break;
+    }
+    if (hit && !a.fired) {
+      a.fired = true;
+      log('ALT', `⚠ ${rec.topic}: ${v} ${a.op} ${a.val}${a.note ? ' — ' + a.note : ''}`);
+      if (Notification.permission === 'granted') {
+        try { new Notification('Re-Tech MQTT Alert', { body: `${rec.topic}\n${v} ${a.op} ${a.val}\n${a.note || ''}` }); } catch {}
+      }
+      changed = true;
+    } else if (!hit && a.fired) {
+      a.fired = false;
+      changed = true;
+    }
+  }
+  if (changed) { markDirty('alerts'); }
+}
+$('btnAddAlert').onclick = () => {
+  $('aTopic').value = state.selectedKey ? state.topics.get(state.selectedKey).topic : '';
+  $('aVal').value = ''; $('aNote').value = '';
+  $('alertModal').classList.add('show');
+  setTimeout(() => $('aTopic').focus(), 100);
+};
+$('btnCancelAlert').onclick = () => $('alertModal').classList.remove('show');
+$('btnSaveAlert').onclick = () => {
+  const a = {
+    id: 'a' + Math.random().toString(36).slice(2, 8),
+    topic: $('aTopic').value.trim(),
+    op: $('aOp').value,
+    val: $('aVal').value.trim(),
+    note: $('aNote').value.trim(),
+    fired: false,
+  };
+  if (!a.topic || !a.val) return alert('Topic & nilai wajib diisi');
+  state.alerts.push(a);
+  $('alertModal').classList.remove('show');
+  markDirty('alerts'); scheduleFlush();
+  log('SYS', `Alert ditambahkan: ${a.topic} ${a.op} ${a.val}`);
+};
+
+/* =============== TABS =============== */
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    $('tab-' + t.dataset.tab).classList.add('active');
+    if (t.dataset.tab === 'chart' && state.chart) setTimeout(() => state.chart.resize(), 50);
+  };
+});
+
+/* =============== CHART CONTROLS =============== */
+$('btnApplyChart').onclick = () => {
+  state.jsonPath = $('jsonPath').value.trim();
+  state.chartWindow = parseInt($('chartWindow').value, 10);
+  scheduleChart();
+};
+$('chartWindow').onchange = () => {
+  state.chartWindow = parseInt($('chartWindow').value, 10);
+  scheduleChart();
+};
+
+/* =============== CLEAR =============== */
+$('btnClearPayload').onclick = () => {
+  if (!state.selectedKey) return;
+  const rec = state.topics.get(state.selectedKey);
+  if (!rec) return;
+  rec.history = [];
+  rec.lastPayload = null;
+  rec.prevPayload = null;
+  rec.count = 0;
+  renderPayload(state.selectedKey);
+  renderDiff(state.selectedKey);
+  renderHistory(state.selectedKey);
+  state.lastTreeSignature = '';
+  markDirty('tree'); scheduleFlush();
+};
+
+/* =============== SEARCH (debounced) =============== */
+let searchTimer;
+$('globalSearch').oninput = e => {
+  clearTimeout(searchTimer);
+  const v = e.target.value.trim();
+  searchTimer = setTimeout(() => {
+    state.search = v;
+    state.lastTreeSignature = '';
+    markDirty('tree'); scheduleFlush();
+  }, 200);
+};
+
+/* =============== EXPORT / IMPORT =============== */
+$('btnExport').onclick = () => {
+  const data = {
+    version: 1,
+    app: 'Re-Tech MQTT Studio',
+    exportedAt: new Date().toISOString(),
+    topics: [...state.topics.values()].map(r => ({
+      topic: r.topic, count: r.count,
+      lastPayload: r.lastPayload, lastTime: r.lastTime,
+      watched: r.watched, history: r.history.slice(-50),
+    })),
+    alerts: state.alerts,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `retech-mqtt-${Date.now()}.json`;
+  a.click();
+  log('SYS', 'Sesi di-export');
+};
+$('importFile').onchange = e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (data.topics) {
+        for (const t of data.topics) {
+          const key = 'imported::' + t.topic;
+          state.topics.set(key, {
+            connId: 'imported', topic: t.topic, count: t.count,
+            lastPayload: t.lastPayload, prevPayload: null,
+            lastTime: t.lastTime, history: t.history || [], watched: !!t.watched,
+          });
+        }
+      }
+      if (data.alerts) state.alerts = data.alerts;
+      state.lastTreeSignature = '';
+      markDirty('tree'); markDirty('watch'); markDirty('alerts'); scheduleFlush();
+      log('SYS', `Import ${data.topics?.length || 0} topik`);
+    } catch (err) { log('ERR', 'Import gagal: ' + err.message); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+};
+
+/* =============== INITIAL =============== */
+log('SYS', 'Re-Tech MQTT Studio siap. Klik "+ Broker" untuk mulai.');
+markDirty('watch'); markDirty('alerts');
+scheduleFlush();
+</script>
+</body>
+</html>

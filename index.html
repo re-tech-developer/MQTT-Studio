@@ -2,634 +2,289 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Re-Tech MQTT">
+<meta name="description" content="Re-Tech MQTT Studio — dashboard MQTT profesional dengan replay, multi-broker, dan multi-chart.">
 <title>Re-Tech MQTT Studio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%2306b6d4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Ctext x='32' y='44' font-family='Arial,sans-serif' font-weight='800' font-size='36' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
+<link rel="manifest" id="pwaManifest">
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
+/* ============ RESET & VARIABLES ============ */
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
 :root {
-  --bg: #0f172a;
-  --bg2: #1e293b;
-  --bg3: #334155;
-  --panel: #1a2332;
-  --fg: #e2e8f0;
-  --fg-dim: #94a3b8;
-  --fg-mute: #64748b;
-  --accent: #6366f1;
-  --accent-hi: #818cf8;
-  --accent-soft: rgba(99,102,241,0.15);
-  --green: #10b981;
-  --red: #ef4444;
-  --yellow: #f59e0b;
-  --cyan: #06b6d4;
-  --border: #2a3647;
-  --border-hi: #3b4a63;
-  --hover: #263449;
+  --bg: #0f172a; --bg2: #1e293b; --bg3: #334155; --panel: #1a2332;
+  --fg: #e2e8f0; --fg-dim: #94a3b8; --fg-mute: #64748b;
+  --accent: #6366f1; --accent-hi: #818cf8; --accent-soft: rgba(99,102,241,0.15);
+  --green: #10b981; --red: #ef4444; --yellow: #f59e0b; --cyan: #06b6d4;
+  --border: #2a3647; --border-hi: #3b4a63; --hover: #263449;
   --shadow: 0 4px 20px rgba(0,0,0,0.3);
-  --radius: 10px;
-  --radius-sm: 6px;
+  --radius: 10px; --radius-sm: 6px;
 }
-
 [data-theme="light"] {
-  --bg: #f8fafc;
-  --bg2: #ffffff;
-  --bg3: #f1f5f9;
-  --panel: #ffffff;
-  --fg: #0f172a;
-  --fg-dim: #475569;
-  --fg-mute: #94a3b8;
-  --accent: #4f46e5;
-  --accent-hi: #6366f1;
-  --accent-soft: rgba(79,70,229,0.1);
-  --green: #059669;
-  --red: #dc2626;
-  --yellow: #d97706;
-  --cyan: #0891b2;
-  --border: #e2e8f0;
-  --border-hi: #cbd5e1;
-  --hover: #f1f5f9;
+  --bg: #f8fafc; --bg2: #ffffff; --bg3: #f1f5f9; --panel: #ffffff;
+  --fg: #0f172a; --fg-dim: #475569; --fg-mute: #94a3b8;
+  --accent: #4f46e5; --accent-hi: #6366f1; --accent-soft: rgba(79,70,229,0.1);
+  --green: #059669; --red: #dc2626; --yellow: #d97706; --cyan: #0891b2;
+  --border: #e2e8f0; --border-hi: #cbd5e1; --hover: #f1f5f9;
   --shadow: 0 4px 20px rgba(15,23,42,0.08);
 }
-
 html, body { height: 100%; overflow: hidden; }
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  background: var(--bg);
-  color: var(--fg);
-  font-size: 13.5px;
-  line-height: 1.5;
+  background: var(--bg); color: var(--fg); font-size: 13.5px; line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  transition: background 0.2s, color 0.2s;
 }
 .mono { font-family: 'JetBrains Mono', 'Consolas', monospace; }
 
-/* =============== HEADER =============== */
+/* ============ HEADER ============ */
 header {
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  min-height: 54px;
-  z-index: 50;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 10px 16px; display: flex; align-items: center; gap: 10px;
+  flex-wrap: wrap; min-height: 54px; z-index: 50;
+  padding-top: max(10px, env(safe-area-inset-top));
 }
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: -0.3px;
-  color: var(--fg);
-  white-space: nowrap;
-}
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; letter-spacing: -0.3px; white-space: nowrap; }
 .brand-logo {
   width: 28px; height: 28px;
   background: linear-gradient(135deg, var(--accent), var(--cyan));
-  border-radius: 7px;
-  display: flex; align-items: center; justify-content: center;
+  border-radius: 7px; display: flex; align-items: center; justify-content: center;
   color: white; font-weight: 800; font-size: 14px;
   box-shadow: 0 2px 8px rgba(99,102,241,0.35);
 }
 .brand-name span { color: var(--accent-hi); }
-
 .conn-list { display: flex; gap: 6px; flex-wrap: wrap; }
 .conn-pill {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 3px 10px 3px 8px;
-  font-size: 11.5px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: border-color 0.2s;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 999px;
+  padding: 3px 10px 3px 8px; font-size: 11.5px; display: flex; align-items: center; gap: 6px;
 }
 .conn-pill.on { border-color: rgba(16,185,129,0.4); }
 .conn-pill .dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--red);
+  width: 7px; height: 7px; border-radius: 50%; background: var(--red);
   box-shadow: 0 0 0 3px rgba(239,68,68,0.15);
 }
 .conn-pill.on .dot {
-  background: var(--green);
-  box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+  background: var(--green); box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
   animation: pulse 2s infinite;
 }
 @keyframes pulse {
   0%, 100% { box-shadow: 0 0 0 3px rgba(16,185,129,0.15); }
   50% { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
 }
-.conn-pill .close {
-  cursor: pointer; color: var(--fg-mute);
-  font-size: 14px; padding: 0 2px;
-  transition: color 0.15s;
-}
+.conn-pill .close { cursor: pointer; color: var(--fg-mute); font-size: 14px; padding: 0 2px; }
 .conn-pill .close:hover { color: var(--red); }
-
 .spacer { flex: 1; min-width: 0; }
 
-/* =============== BUTTONS & INPUTS =============== */
+/* ============ BUTTONS & INPUTS ============ */
 button {
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 500;
-  background: var(--accent);
-  color: white;
-  border: none;
-  padding: 7px 13px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
-  white-space: nowrap;
+  font-family: inherit; font-size: 12.5px; font-weight: 500;
+  background: var(--accent); color: white; border: none;
+  padding: 7px 13px; border-radius: var(--radius-sm); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background 0.15s, transform 0.1s; white-space: nowrap;
 }
 button:hover { background: var(--accent-hi); }
 button:active { transform: scale(0.97); }
-button.ghost {
-  background: transparent;
-  color: var(--fg);
-  border: 1px solid var(--border);
-}
+button.ghost { background: transparent; color: var(--fg); border: 1px solid var(--border); }
 button.ghost:hover { background: var(--hover); border-color: var(--border-hi); }
-button.icon-btn {
-  padding: 7px 9px;
-  background: var(--bg3);
-  color: var(--fg-dim);
-  border: 1px solid var(--border);
-}
+button.icon-btn { padding: 7px 9px; background: var(--bg3); color: var(--fg-dim); border: 1px solid var(--border); }
 button.icon-btn:hover { color: var(--fg); background: var(--hover); }
 button.mini { padding: 3px 9px; font-size: 11px; }
 button.danger { background: var(--red); }
 button.danger:hover { background: #dc2626; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 input, select, textarea {
-  font-family: inherit;
-  font-size: 12.5px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--fg);
-  padding: 7px 11px;
-  border-radius: var(--radius-sm);
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  width: 100%;
+  font-family: inherit; font-size: 12.5px;
+  background: var(--bg); border: 1px solid var(--border); color: var(--fg);
+  padding: 7px 11px; border-radius: var(--radius-sm); outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s; width: 100%;
 }
-input:focus, select:focus, textarea:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 input::placeholder, textarea::placeholder { color: var(--fg-mute); }
 select { cursor: pointer; }
 
-.search-wrap {
-  position: relative;
-  flex: 1;
-  max-width: 320px;
-  min-width: 120px;
-}
+.search-wrap { position: relative; flex: 1; max-width: 320px; min-width: 120px; }
 .search-wrap input { padding-left: 32px; }
 .search-wrap::before {
-  content: '🔍';
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 12px;
-  opacity: 0.5;
-  pointer-events: none;
+  content: '🔍'; position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  font-size: 12px; opacity: 0.5; pointer-events: none;
 }
-
 .btn-file {
-  cursor: pointer;
-  background: var(--bg3);
-  color: var(--fg-dim);
-  padding: 7px 12px;
-  border-radius: var(--radius-sm);
-  font-weight: 500;
-  font-size: 12.5px;
-  border: 1px solid var(--border);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.15s;
+  cursor: pointer; background: var(--bg3); color: var(--fg-dim);
+  padding: 7px 12px; border-radius: var(--radius-sm); font-weight: 500; font-size: 12.5px;
+  border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 6px;
 }
 .btn-file:hover { background: var(--hover); color: var(--fg); }
 
-/* =============== MAIN LAYOUT =============== */
-main {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 300px 1fr 280px;
-  overflow: hidden;
-  min-height: 0;
-}
-
-/* =============== SIDEBARS =============== */
-aside {
-  background: var(--bg2);
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-}
+/* ============ LAYOUT ============ */
+main { flex: 1; display: grid; grid-template-columns: 300px 1fr 280px; overflow: hidden; min-height: 0; }
+aside { background: var(--bg2); display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 #sidebar { border-right: 1px solid var(--border); }
 #rightbar { border-left: 1px solid var(--border); }
-
 .sidebar-head {
-  padding: 10px 14px;
-  font-weight: 600;
-  color: var(--fg-dim);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  padding: 10px 14px; font-weight: 600; color: var(--fg-dim); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
-.badge {
-  background: var(--bg3);
-  padding: 2px 9px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  color: var(--fg-dim);
-  font-weight: 600;
-}
+.badge { background: var(--bg3); padding: 2px 9px; border-radius: 999px; font-size: 10.5px; color: var(--fg-dim); font-weight: 600; }
 
-#tree {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 6px;
-  contain: strict;
-  will-change: scroll-position;
-}
+/* ============ TREE ============ */
+#tree { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 6px; contain: strict; }
 .tree-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 9px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: 12.5px;
-  white-space: nowrap;
-  user-select: none;
-  transition: background 0.1s;
-  contain: layout style;
+  display: flex; align-items: center; gap: 6px; padding: 5px 9px;
+  border-radius: var(--radius-sm); cursor: pointer; font-size: 12.5px;
+  white-space: nowrap; user-select: none; contain: layout style;
 }
 .tree-row:hover { background: var(--hover); }
-.tree-row.active {
-  background: var(--accent);
-  color: white;
-  box-shadow: 0 2px 8px rgba(99,102,241,0.3);
-}
-.tree-row .arrow {
-  width: 14px;
-  color: var(--fg-mute);
-  font-size: 9px;
-  text-align: center;
-  flex-shrink: 0;
-  transition: transform 0.15s;
-}
+.tree-row.active { background: var(--accent); color: white; box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
+.tree-row .arrow { width: 14px; color: var(--fg-mute); font-size: 9px; text-align: center; flex-shrink: 0; }
 .tree-row .arrow.leaf { visibility: hidden; }
-.tree-row .name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-weight: 500;
-}
+.tree-row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
 .tree-row .cnt {
-  font-size: 10px;
-  color: var(--fg-mute);
-  background: var(--bg3);
-  padding: 1px 7px;
-  border-radius: 999px;
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
+  font-size: 10px; color: var(--fg-mute); background: var(--bg3);
+  padding: 1px 7px; border-radius: 999px; flex-shrink: 0;
 }
-.tree-row.active .cnt {
-  background: rgba(255,255,255,0.2);
-  color: white;
-}
-.tree-children {
-  margin-left: 13px;
-  border-left: 1px dashed var(--border-hi);
-  padding-left: 3px;
-}
+.tree-row.active .cnt { background: rgba(255,255,255,0.2); color: white; }
+.tree-children { margin-left: 13px; border-left: 1px dashed var(--border-hi); padding-left: 3px; }
 .tree-children.collapsed { display: none; }
 .spark { width: 46px; height: 14px; flex-shrink: 0; opacity: 0.85; }
 
-/* =============== CENTER =============== */
-#center {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  background: var(--bg);
-}
+/* ============ CENTER ============ */
+#center { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); }
 #detailHeader {
-  padding: 12px 16px;
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
+  padding: 12px 16px; background: var(--bg2); border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-shrink: 0;
 }
-.topic-title {
-  font-weight: 600;
-  font-size: 14px;
-  word-break: break-all;
-  color: var(--fg);
-  font-family: 'JetBrains Mono', monospace;
-}
-.topic-meta {
-  font-size: 11.5px;
-  color: var(--fg-mute);
-  margin-top: 3px;
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
+.topic-title { font-weight: 600; font-size: 14px; word-break: break-all; font-family: 'JetBrains Mono', monospace; }
+.topic-meta { font-size: 11.5px; color: var(--fg-mute); margin-top: 3px; display: flex; gap: 12px; flex-wrap: wrap; }
 .detail-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
-.tabs {
-  display: flex;
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  padding: 0 8px;
-  overflow-x: auto;
-  flex-shrink: 0;
-  scrollbar-width: none;
-}
+.tabs { display: flex; background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 8px; overflow-x: auto; flex-shrink: 0; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
 .tab {
-  background: transparent;
-  color: var(--fg-dim);
-  border: none;
-  padding: 11px 16px;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  font-weight: 500;
-  font-size: 12.5px;
-  transition: color 0.15s, border-color 0.15s;
-  flex-shrink: 0;
+  background: transparent; color: var(--fg-dim); border: none; padding: 11px 16px;
+  cursor: pointer; border-bottom: 2px solid transparent; border-radius: 0;
+  font-weight: 500; font-size: 12.5px; flex-shrink: 0;
 }
-.tab:hover { color: var(--fg); background: transparent; }
-.tab:active { transform: none; }
-.tab.active {
-  color: var(--accent-hi);
-  border-bottom-color: var(--accent);
-  font-weight: 600;
-}
+.tab:hover { color: var(--fg); }
+.tab.active { color: var(--accent-hi); border-bottom-color: var(--accent); font-weight: 600; }
 
-.tab-content {
-  display: none;
-  flex: 1;
-  overflow: auto;
-  padding: 16px;
-  min-height: 0;
-}
+.tab-content { display: none; flex: 1; overflow: auto; padding: 16px; min-height: 0; }
 .tab-content.active { display: block; }
 
-#payloadView {
-  font-family: 'JetBrains Mono', 'Consolas', monospace;
-  font-size: 12.5px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.65;
-  color: var(--fg);
-}
+#payloadView { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; white-space: pre-wrap; word-break: break-word; line-height: 1.65; }
 .json-key { color: var(--accent-hi); font-weight: 500; }
 .json-str { color: var(--green); }
 .json-num { color: var(--yellow); }
 .json-bool { color: var(--cyan); }
 
 /* Diff */
-.diff-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-.diff-card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px;
-}
-.diff-card h4 {
-  font-size: 11px;
-  color: var(--fg-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-.diff-val {
-  font-family: 'JetBrains Mono', monospace;
-  padding: 4px 8px;
-  border-radius: 4px;
-  margin: 3px 0;
-  font-size: 12px;
-  word-break: break-all;
-}
-.diff-added {
-  background: rgba(16,185,129,0.12);
-  color: var(--green);
-  border-left: 3px solid var(--green);
-}
-.diff-removed {
-  background: rgba(239,68,68,0.12);
-  color: var(--red);
-  border-left: 3px solid var(--red);
-}
-.diff-changed {
-  background: rgba(245,158,11,0.12);
-  color: var(--yellow);
-  border-left: 3px solid var(--yellow);
-}
+.diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.diff-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+.diff-card h4 { font-size: 11px; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; font-weight: 600; }
+.diff-val { font-family: 'JetBrains Mono', monospace; padding: 4px 8px; border-radius: 4px; margin: 3px 0; font-size: 12px; word-break: break-all; }
+.diff-added { background: rgba(16,185,129,0.12); color: var(--green); border-left: 3px solid var(--green); }
+.diff-removed { background: rgba(239,68,68,0.12); color: var(--red); border-left: 3px solid var(--red); }
+.diff-changed { background: rgba(245,158,11,0.12); color: var(--yellow); border-left: 3px solid var(--yellow); }
 .diff-key { color: var(--fg-dim); font-weight: 600; }
 
 /* Chart */
-.chart-controls {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
-.chart-controls label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--fg-dim);
-}
+.chart-controls { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.chart-controls label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--fg-dim); }
 .chart-controls input { width: 200px; }
-#chartBox {
-  position: relative;
-  height: 280px;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px;
+#chartBox { position: relative; height: 280px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+#chartBox.dim { opacity: 0.5; pointer-events: none; }
+.chart-tag-list { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.chart-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 999px;
+  padding: 4px 10px; font-size: 11.5px; font-family: 'JetBrains Mono', monospace;
 }
+.chart-tag .color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.chart-tag .x { cursor: pointer; color: var(--fg-mute); font-size: 13px; }
+.chart-tag .x:hover { color: var(--red); }
+.chart-tag .toggle { cursor: pointer; opacity: 1; }
+.chart-tag .toggle.off { opacity: 0.35; text-decoration: line-through; }
 
 /* History */
-#historyTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-}
-#historyTable th, #historyTable td {
-  text-align: left;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border);
-}
+#historyTable { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+#historyTable th, #historyTable td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
 #historyTable th {
-  color: var(--fg-dim);
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: 10.5px;
-  letter-spacing: 0.5px;
-  background: var(--bg2);
-  position: sticky;
-  top: 0;
-  z-index: 1;
+  color: var(--fg-dim); font-weight: 600; text-transform: uppercase; font-size: 10.5px;
+  letter-spacing: 0.5px; background: var(--bg2); position: sticky; top: 0; z-index: 1;
 }
 #historyTable td:first-child { color: var(--fg-mute); width: 100px; }
 #historyTable tbody tr:hover { background: var(--hover); }
 
+/* Replay */
+#replayPanel {
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px;
+}
+.replay-info { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--fg-dim); flex-wrap: wrap; gap: 8px; }
+.replay-info strong { color: var(--fg); font-family: 'JetBrains Mono', monospace; }
+#replaySlider { width: 100%; -webkit-appearance: none; appearance: none; height: 6px; background: var(--bg3); border-radius: 3px; outline: none; padding: 0; }
+#replaySlider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent); cursor: pointer; border: 3px solid var(--bg2);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+#replaySlider::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent); cursor: pointer; border: 3px solid var(--bg2);
+}
+.replay-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.replay-controls button { padding: 7px 12px; }
+.replay-preview {
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  max-height: 160px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+}
+.replay-progress { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--accent-hi); }
+
 /* Publish */
 #publishArea {
-  background: var(--bg2);
-  border-top: 1px solid var(--border);
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex-shrink: 0;
+  background: var(--bg2); border-top: 1px solid var(--border);
+  padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;
 }
-#publishArea .row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
+#publishArea .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 #pubTopic { flex: 1; min-width: 140px; font-family: 'JetBrains Mono', monospace; }
 #pubQos { width: 70px; }
-.chk {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  color: var(--fg-dim);
-  cursor: pointer;
-  user-select: none;
-}
+.chk { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--fg-dim); cursor: pointer; user-select: none; }
 .chk input { width: auto; }
-#pubPayload {
-  resize: vertical;
-  min-height: 62px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-}
+#pubPayload { resize: vertical; min-height: 62px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 
-/* =============== RIGHT BAR =============== */
-#watchlist, #alerts {
-  padding: 8px;
-  overflow-y: auto;
-  max-height: 200px;
-  flex-shrink: 0;
-}
+/* Right bar */
+#watchlist, #alerts { padding: 8px; overflow-y: auto; max-height: 200px; flex-shrink: 0; }
 .watch-item, .alert-item {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  margin-bottom: 6px;
-  font-size: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  transition: border-color 0.15s;
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 8px 10px; margin-bottom: 6px; font-size: 12px;
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
 }
 .watch-item:hover { border-color: var(--accent); }
-.watch-item .t {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: pointer;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11.5px;
-}
+.watch-item .t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
 .watch-item .t:hover { color: var(--accent-hi); }
-.watch-item .v {
-  color: var(--green);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10.5px;
-  max-width: 90px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.watch-item .v { color: var(--green); font-family: 'JetBrains Mono', monospace; font-size: 10.5px; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .alert-item { border-left: 3px solid var(--fg-mute); }
-.alert-item.fired {
-  border-color: var(--red);
-  border-left-color: var(--red);
-  background: rgba(239,68,68,0.08);
-  animation: alertPulse 1.5s infinite;
-}
+.alert-item.fired { border-color: var(--red); border-left-color: var(--red); background: rgba(239,68,68,0.08); animation: alertPulse 1.5s infinite; }
 @keyframes alertPulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
   50% { box-shadow: 0 0 0 4px rgba(239,68,68,0); }
 }
-.alert-item .x {
-  cursor: pointer;
-  color: var(--fg-mute);
-  font-size: 14px;
-  padding: 0 3px;
-}
+.alert-item .x { cursor: pointer; color: var(--fg-mute); font-size: 14px; padding: 0 3px; }
 .alert-item .x:hover { color: var(--red); }
+.empty-hint { color: var(--fg-mute); padding: 10px 8px; font-size: 11.5px; text-align: center; font-style: italic; }
 
-.empty-hint {
-  color: var(--fg-mute);
-  padding: 10px 8px;
-  font-size: 11.5px;
-  text-align: center;
-  font-style: italic;
-}
-
-#log {
-  flex: 1;
-  background: var(--bg);
-  overflow-y: auto;
-  padding: 8px 10px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  min-height: 100px;
-  line-height: 1.6;
-}
-.log-line {
-  margin-bottom: 3px;
-  word-break: break-all;
-  display: flex;
-  gap: 6px;
-}
+#log { flex: 1; background: var(--bg); overflow-y: auto; padding: 8px 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; min-height: 100px; line-height: 1.6; }
+.log-line { margin-bottom: 3px; word-break: break-all; display: flex; gap: 6px; }
 .log-line .ts { color: var(--fg-mute); flex-shrink: 0; }
 .log-line .type { font-weight: 600; flex-shrink: 0; }
 .log-line .type.SYS { color: var(--accent-hi); }
@@ -639,126 +294,79 @@ aside {
 .log-line .type.PUB { color: var(--green); }
 .log-line .msg { color: var(--fg); overflow: hidden; text-overflow: ellipsis; }
 
-/* =============== MODAL =============== */
+/* Modal */
 .modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  z-index: 100;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  animation: fadeIn 0.15s;
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  z-index: 100; display: none; align-items: center; justify-content: center; padding: 16px;
 }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .modal-backdrop.show { display: flex; }
 .modal {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 22px;
-  width: 500px;
-  max-width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 14px;
+  padding: 22px; width: 500px; max-width: 100%; max-height: 90vh; overflow-y: auto;
   box-shadow: var(--shadow);
-  animation: slideUp 0.2s;
 }
-@keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-.modal h3 {
-  margin-bottom: 16px;
-  color: var(--fg);
-  font-size: 16px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-.form-grid label {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: 11.5px;
-  color: var(--fg-dim);
-  font-weight: 500;
-}
+.modal h3 { margin-bottom: 16px; color: var(--fg); font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-grid label { display: flex; flex-direction: column; gap: 5px; font-size: 11.5px; color: var(--fg-dim); font-weight: 500; }
 .form-grid label.full { grid-column: 1 / -1; }
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 18px;
-}
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 
-/* =============== MOBILE BOTTOM NAV =============== */
+/* Mobile nav */
 .mobile-nav {
-  display: none;
-  background: var(--bg2);
-  border-top: 1px solid var(--border);
-  padding: 6px;
-  gap: 4px;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 60;
+  display: none; background: var(--bg2); border-top: 1px solid var(--border);
+  padding: 6px; gap: 4px; position: fixed; bottom: 0; left: 0; right: 0; z-index: 60;
   box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+  padding-bottom: max(6px, env(safe-area-inset-bottom));
 }
 .mobile-nav button {
-  flex: 1;
-  background: transparent;
-  color: var(--fg-mute);
-  border: none;
-  padding: 8px 4px;
-  font-size: 10px;
-  flex-direction: column;
-  gap: 3px;
-  font-weight: 500;
+  flex: 1; background: transparent; color: var(--fg-mute); border: none;
+  padding: 8px 4px; font-size: 10px; flex-direction: column; gap: 3px; font-weight: 500;
 }
 .mobile-nav button.active { color: var(--accent-hi); }
 .mobile-nav button .ico { font-size: 16px; }
 
-/* =============== SCROLLBAR =============== */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: var(--border-hi);
-  border-radius: 4px;
-}
+::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--fg-mute); }
 
-/* =============== RESPONSIVE =============== */
+/* Toast */
+.toast-container {
+  position: fixed; bottom: 80px; right: 20px; z-index: 200;
+  display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+}
+.toast {
+  background: var(--bg2); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+  padding: 10px 14px; border-radius: var(--radius); font-size: 12.5px;
+  box-shadow: var(--shadow); max-width: 320px; pointer-events: auto;
+  animation: toastIn 0.3s;
+}
+.toast.success { border-left-color: var(--green); }
+.toast.error { border-left-color: var(--red); }
+.toast.warn { border-left-color: var(--yellow); }
+@keyframes toastIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* PWA install button */
+#btnInstall {
+  background: linear-gradient(135deg, var(--accent), var(--cyan));
+  color: white; display: none;
+}
+#btnInstall.show { display: inline-flex; }
+
+/* Responsive */
 @media (max-width: 1100px) {
   main { grid-template-columns: 260px 1fr; }
   #rightbar {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 300px;
-    z-index: 70;
-    transform: translateX(100%);
-    transition: transform 0.25s;
-    box-shadow: -4px 0 20px rgba(0,0,0,0.3);
-    padding-top: 60px;
+    position: fixed; top: 0; right: 0; bottom: 0; width: 300px; z-index: 70;
+    transform: translateX(100%); transition: transform 0.25s;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.3); padding-top: 60px;
   }
   #rightbar.open { transform: translateX(0); }
 }
-
 @media (max-width: 768px) {
   body { font-size: 13px; padding-bottom: 58px; }
-  header { padding: 8px 10px; gap: 6px; min-height: 48px; }
+  header { padding: 8px 10px; gap: 6px; min-height: 48px; padding-top: max(8px, env(safe-area-inset-top)); }
   .brand { font-size: 13.5px; }
   .brand-logo { width: 24px; height: 24px; font-size: 12px; }
   .brand-name { display: none; }
@@ -766,75 +374,39 @@ aside {
   .search-wrap { max-width: none; order: 10; width: 100%; }
   .conn-list { max-width: 40%; overflow-x: auto; flex-wrap: nowrap; }
   .conn-pill { flex-shrink: 0; }
-  header .icon-btn, header .btn-file { padding: 7px 9px; font-size: 11px; }
-  header .btn-file .lbl { display: none; }
-
-  main {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr;
-  }
+  main { grid-template-columns: 1fr; grid-template-rows: 1fr; }
   #sidebar {
-    position: fixed;
-    top: 48px;
-    left: 0;
-    bottom: 58px;
-    width: 85%;
-    max-width: 340px;
-    z-index: 65;
-    transform: translateX(-100%);
-    transition: transform 0.25s;
+    position: fixed; top: 48px; left: 0; bottom: 58px; width: 85%; max-width: 340px;
+    z-index: 65; transform: translateX(-100%); transition: transform 0.25s;
     box-shadow: 4px 0 20px rgba(0,0,0,0.3);
   }
   #sidebar.open { transform: translateX(0); }
-
   #rightbar { top: 48px; bottom: 58px; padding-top: 0; }
   #rightbar.open { transform: translateX(0); }
-
   #detailHeader { padding: 10px 12px; flex-wrap: wrap; }
   .topic-title { font-size: 13px; }
   .detail-actions button { padding: 6px 10px; font-size: 11px; }
   .detail-actions .lbl { display: none; }
-
   .tabs { padding: 0 4px; }
   .tab { padding: 10px 12px; font-size: 12px; }
   .tab-content { padding: 12px; }
-
   .diff-grid { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
-
   .mobile-nav { display: flex; }
-
   #publishArea { padding: 10px 12px; }
   #publishArea .row { flex-wrap: wrap; }
   #pubTopic { width: 100%; flex: 1 1 100%; }
   #pubQos, .chk { flex-shrink: 0; }
   #btnPublish { flex: 1; justify-content: center; }
-
   #chartBox { height: 220px; }
+  .toast-container { bottom: 70px; right: 10px; left: 10px; }
 }
-
-/* overlay for mobile drawer */
-.overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 64;
-}
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 64; }
 .overlay.show { display: block; }
-
-/* Pause indicator */
 .paused-banner {
-  display: none;
-  background: var(--yellow);
-  color: #000;
-  text-align: center;
-  padding: 5px 10px;
-  font-weight: 600;
-  font-size: 12px;
-  position: sticky;
-  top: 0;
-  z-index: 40;
+  display: none; background: var(--yellow); color: #000; text-align: center;
+  padding: 5px 10px; font-weight: 600; font-size: 12px;
+  position: sticky; top: 0; z-index: 40;
 }
 .paused .paused-banner { display: block; }
 </style>
@@ -844,7 +416,7 @@ aside {
 <header>
   <div class="brand">
     <div class="brand-logo">R</div>
-    <div class="brand-name show-mobile">Re-Tech <span>MQTT Studio</span></div>
+    <div class="brand-name show-mobile">Re-Tech <span>MQTT</span></div>
   </div>
   <button id="btnMenu" class="icon-btn" title="Topics" style="display:none">☰</button>
   <button id="btnAddConn">+ Broker</button>
@@ -853,11 +425,12 @@ aside {
   <div class="search-wrap">
     <input id="globalSearch" placeholder="Cari topik / payload...">
   </div>
+  <button id="btnInstall" class="icon-btn" title="Install App">📲 Install</button>
   <button id="btnPause" class="icon-btn" title="Pause stream">⏸</button>
   <button id="btnTheme" class="icon-btn" title="Theme">🌙</button>
   <button id="btnExport" class="icon-btn" title="Export sesi">⬇</button>
-  <label class="btn-file" title="Import sesi">⬆<span class="lbl"> Import</span><input type="file" id="importFile" accept=".json" hidden></label>
-  <button id="btnRight" class="icon-btn" title="Watchlist & Alerts" style="display:none">⭐</button>
+  <label class="btn-file" title="Import sesi">⬆<input type="file" id="importFile" accept=".json" hidden></label>
+  <button id="btnRight" class="icon-btn" title="Watchlist" style="display:none">⭐</button>
 </header>
 
 <div class="paused-banner">⏸ Stream dijeda — klik tombol Play untuk melanjutkan</div>
@@ -877,12 +450,11 @@ aside {
     <div id="detailHeader">
       <div style="min-width:0; flex:1">
         <div class="topic-title" id="selectedTopic">Pilih topik untuk melihat detail</div>
-        <div class="topic-meta" id="selectedMeta">
-          <span>Re-Tech MQTT Studio</span>
-        </div>
+        <div class="topic-meta" id="selectedMeta"><span>Re-Tech MQTT Studio v2.0</span></div>
       </div>
       <div class="detail-actions">
         <button id="btnWatch" class="ghost">⭐<span class="lbl"> Watch</span></button>
+        <button id="btnAddToChart" class="ghost" title="Tambah ke combined chart">📊<span class="lbl"> Chart+</span></button>
         <button id="btnClearPayload" class="ghost">🗑<span class="lbl"> Clear</span></button>
       </div>
     </div>
@@ -891,6 +463,8 @@ aside {
       <button class="tab active" data-tab="payload">Payload</button>
       <button class="tab" data-tab="diff">Diff</button>
       <button class="tab" data-tab="chart">Chart</button>
+      <button class="tab" data-tab="multi">Multi-Chart</button>
+      <button class="tab" data-tab="replay">Replay</button>
       <button class="tab" data-tab="history">History</button>
     </div>
 
@@ -900,7 +474,7 @@ aside {
 
     <div class="tab-content" id="tab-diff">
       <div class="diff-grid" id="diffView">
-        <div class="empty-hint" style="grid-column:1/-1">Pilih topik yang memiliki minimal 2 pesan untuk melihat perbandingan</div>
+        <div class="empty-hint" style="grid-column:1/-1">Pilih topik yang memiliki minimal 2 pesan</div>
       </div>
     </div>
 
@@ -913,11 +487,63 @@ aside {
             <option value="300" selected>5 menit</option>
             <option value="900">15 menit</option>
             <option value="3600">1 jam</option>
+            <option value="0">Semua</option>
           </select>
         </label>
         <button id="btnApplyChart">Apply</button>
       </div>
       <div id="chartBox"><canvas id="chart"></canvas></div>
+    </div>
+
+    <div class="tab-content" id="tab-multi">
+      <div class="chart-controls">
+        <label>JSONPath global: <input id="multiJsonPath" placeholder="suhu / data.temp / $.value"></label>
+        <label>Window:
+          <select id="multiWindow">
+            <option value="60">1 menit</option>
+            <option value="300" selected>5 menit</option>
+            <option value="900">15 menit</option>
+            <option value="3600">1 jam</option>
+            <option value="0">Semua</option>
+          </select>
+        </label>
+        <label class="chk"><input type="checkbox" id="multiDualAxis"> dual axis</label>
+        <button id="btnApplyMulti">Apply</button>
+      </div>
+      <div class="chart-tag-list" id="chartTags"></div>
+      <div id="multiChartBox"><canvas id="multiChart"></canvas></div>
+      <div style="margin-top:12px;font-size:12px;color:var(--fg-dim)">
+        💡 Tambahkan topik dari tab <strong>Watchlist</strong> atau klik <strong>📊 Chart+</strong> di header.
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-replay">
+      <div id="replayPanel">
+        <div class="replay-info">
+          <div>Topik: <strong id="replayTopic">-</strong></div>
+          <div>Frame: <span class="replay-progress" id="replayProgress">0 / 0</span></div>
+        </div>
+        <input type="range" id="replaySlider" min="0" max="0" value="0" step="1">
+        <div class="replay-controls">
+          <button id="replayPlay" class="ghost">▶ Play</button>
+          <button id="replayStepBack" class="ghost" title="Frame sebelumnya">⏮</button>
+          <button id="replayStepFwd" class="ghost" title="Frame berikutnya">⏭</button>
+          <button id="replayLoop" class="ghost" title="Loop">🔁 Loop: OFF</button>
+          <label style="font-size:12px;color:var(--fg-dim)">Speed:
+            <select id="replaySpeed" style="width:80px">
+              <option value="0.5">0.5×</option>
+              <option value="1" selected>1×</option>
+              <option value="2">2×</option>
+              <option value="5">5×</option>
+              <option value="10">10×</option>
+              <option value="50">50×</option>
+            </select>
+          </label>
+          <button id="replayReset" class="ghost">⏹ Reset</button>
+        </div>
+        <div style="font-size:11.5px;color:var(--fg-dim)">Timestamp: <strong id="replayTs">-</strong></div>
+        <div class="replay-preview" id="replayPreview">(pilih topik di tree dulu)</div>
+      </div>
     </div>
 
     <div class="tab-content" id="tab-history">
@@ -952,8 +578,8 @@ aside {
     <div class="sidebar-head">
       <span>🔔 Alerts</span>
       <div>
-        <button id="btnAskNotif" class="mini" title="Izinkan notifikasi">🔕</button>
-        <button id="btnAddAlert" class="mini" title="Tambah alert">+</button>
+        <button id="btnAskNotif" class="mini" title="Notifikasi">🔕</button>
+        <button id="btnAddAlert" class="mini" title="Tambah">+</button>
       </div>
     </div>
     <div id="alerts"><div class="empty-hint">Belum ada alert</div></div>
@@ -969,6 +595,8 @@ aside {
   <button data-mnav="watch"><span class="ico">⭐</span>Watch</button>
   <button data-mnav="log"><span class="ico">📜</span>Log</button>
 </nav>
+
+<div class="toast-container" id="toastBox"></div>
 
 <!-- MODAL CONNECTION -->
 <div class="modal-backdrop" id="modalBackdrop">
@@ -1002,7 +630,7 @@ aside {
         <select id="aOp">
           <option value="&gt;">&gt; lebih besar</option>
           <option value="&lt;">&lt; lebih kecil</option>
-          <option value="==">== sama dengan</option>
+          <option value="==">== sama</option>
           <option value="!=">!= tidak sama</option>
           <option value="contains">contains teks</option>
         </select>
@@ -1018,12 +646,112 @@ aside {
 </div>
 
 <script>
-/* =================================================================
-   RE-TECH MQTT STUDIO
-   Single-file MQTT dashboard — optimized for performance & mobile
-   ================================================================= */
+/* =============================================================
+   RE-TECH MQTT STUDIO v2.0
+   + PWA  + Replay  + Multi-Chart  + Toast
+   ============================================================= */
 
-/* =============== STATE =============== */
+/* ---------- PWA: Manifest inline + Service Worker inline ---------- */
+(function setupPWA() {
+  const manifest = {
+    name: 'Re-Tech MQTT Studio',
+    short_name: 'Re-Tech MQTT',
+    description: 'Professional MQTT dashboard with replay & multi-chart',
+    start_url: '.',
+    scope: '.',
+    display: 'standalone',
+    background_color: '#0f172a',
+    theme_color: '#6366f1',
+    orientation: 'any',
+    icons: [
+      {
+        src: 'data:image/svg+xml,' + encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+            <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#06b6d4"/>
+            </linearGradient></defs>
+            <rect width="512" height="512" rx="110" fill="url(#g)"/>
+            <text x="256" y="350" font-family="Arial,sans-serif" font-weight="800" font-size="300" fill="white" text-anchor="middle">R</text>
+          </svg>`),
+        sizes: '512x512',
+        type: 'image/svg+xml',
+        purpose: 'any maskable',
+      }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  document.getElementById('pwaManifest').setAttribute('href', URL.createObjectURL(blob));
+
+  // Service Worker inline
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+      const CACHE = 'retech-mqtt-v2';
+      const ASSETS = ['./', './index.html'];
+      self.addEventListener('install', e => {
+        self.skipWaiting();
+        e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS).catch(()=>{})));
+      });
+      self.addEventListener('activate', e => {
+        e.waitUntil(caches.keys().then(keys => Promise.all(
+          keys.filter(k => k !== CACHE).map(k => caches.delete(k))
+        )).then(() => self.clients.claim()));
+      });
+      self.addEventListener('fetch', e => {
+        if (e.request.method !== 'GET') return;
+        e.respondWith(
+          caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
+            const copy = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, copy)).catch(()=>{});
+            return res;
+          }).catch(() => cached))
+        );
+      });
+    `;
+    try {
+      const swBlob = new Blob([swCode], { type: 'application/javascript' });
+      navigator.serviceWorker.register(URL.createObjectURL(swBlob), { scope: './' })
+        .then(() => console.log('SW registered'))
+        .catch(e => console.log('SW fail:', e.message));
+    } catch (e) { console.log('SW error:', e); }
+  }
+
+  // Install prompt
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('btnInstall').classList.add('show');
+  });
+  document.getElementById('btnInstall').onclick = async () => {
+    if (!deferredPrompt) { toast('Gunakan menu browser → "Add to Home Screen"', 'warn'); return; }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') toast('Aplikasi ter-install! 🎉', 'success');
+    deferredPrompt = null;
+    document.getElementById('btnInstall').classList.remove('show');
+  };
+  window.addEventListener('appinstalled', () => {
+    toast('Re-Tech MQTT Studio berhasil di-install', 'success');
+    document.getElementById('btnInstall').classList.remove('show');
+  });
+})();
+
+/* ---------- TOAST ---------- */
+function toast(msg, type = 'info', ms = 3500) {
+  const box = document.getElementById('toastBox');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  box.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(400px)';
+    el.style.transition = 'all 0.3s';
+    setTimeout(() => el.remove(), 300);
+  }, ms);
+}
+
+/* ---------- STATE ---------- */
 const state = {
   connections: new Map(),
   topics: new Map(),
@@ -1037,33 +765,50 @@ const state = {
   jsonPath: '',
   chartWindow: 300,
   paused: false,
-  dirty: { tree: false, watch: false, alerts: false, log: false, chart: false },
+  dirty: { tree: false, watch: false, alerts: false, log: false, chart: false, multi: false },
   dirtyKeys: new Set(),
   lastTreeSignature: '',
   logBuffer: [],
+  // Multi-chart
+  multiTags: JSON.parse(localStorage.getItem('retech-multitags') || '[]'),
+  multiChart: null,
+  multiJsonPath: localStorage.getItem('retech-multijsonpath') || '',
+  multiWindow: 300,
+  multiDualAxis: localStorage.getItem('retech-multidual') === '1',
+  // Replay
+  replay: {
+    playing: false,
+    index: 0,
+    speed: 1,
+    loop: false,
+    timer: null,
+    key: null,
+  },
 };
 
-/* =============== HELPERS =============== */
+const CHART_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#84cc16','#f97316','#14b8a6'];
+
+/* ---------- HELPERS ---------- */
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const now = () => Date.now();
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
-/* =============== BATCHED RENDER (anti-lag) =============== */
-function markDirty(area, key) {
-  state.dirty[area] = true;
-  if (key) state.dirtyKeys.add(key);
-}
+/* ---------- BATCHED RENDER ---------- */
+function markDirty(area, key) { state.dirty[area] = true; if (key) state.dirtyKeys.add(key); }
 function flushUI() {
   if (state.dirty.tree) { renderTree(); state.dirty.tree = false; }
   if (state.dirty.watch) { renderWatchlist(); state.dirty.watch = false; }
   if (state.dirty.alerts) { renderAlerts(); state.dirty.alerts = false; }
   if (state.dirty.log) { flushLog(); state.dirty.log = false; }
   if (state.dirty.chart && state.chartTopicKey) { updateChart(state.chartTopicKey); state.dirty.chart = false; }
+  if (state.dirty.multi) { updateMultiChart(); state.dirty.multi = false; }
   if (state.dirtyKeys.size && state.selectedKey) {
     if (state.dirtyKeys.has(state.selectedKey)) {
       renderPayload(state.selectedKey);
       renderDiff(state.selectedKey);
       renderHistory(state.selectedKey);
+      updateReplayInfo();
     }
     state.dirtyKeys.clear();
   }
@@ -1072,27 +817,22 @@ let uiTick = false;
 function scheduleFlush() {
   if (uiTick) return;
   uiTick = true;
-  requestAnimationFrame(() => {
-    uiTick = false;
-    try { flushUI(); } catch (e) { console.error(e); }
-  });
+  requestAnimationFrame(() => { uiTick = false; try { flushUI(); } catch (e) { console.error(e); } });
 }
-// throttle untuk chart (max 4fps)
 let lastChartUpdate = 0;
 function scheduleChart() {
   const t = performance.now();
   if (t - lastChartUpdate < 250) { markDirty('chart'); return; }
   lastChartUpdate = t;
-  markDirty('chart');
+  markDirty('chart'); markDirty('multi');
   scheduleFlush();
 }
 
-/* =============== LOG (buffered, max 150) =============== */
+/* ---------- LOG ---------- */
 function log(type, msg) {
   state.logBuffer.push({ t: now(), type, msg });
   if (state.logBuffer.length > 150) state.logBuffer.shift();
-  markDirty('log');
-  scheduleFlush();
+  markDirty('log'); scheduleFlush();
 }
 function flushLog() {
   const el = $('log');
@@ -1108,7 +848,7 @@ function flushLog() {
   el.scrollTop = el.scrollHeight;
 }
 
-/* =============== THEME =============== */
+/* ---------- THEME ---------- */
 document.documentElement.setAttribute('data-theme', state.theme);
 $('btnTheme').textContent = state.theme === 'dark' ? '🌙' : '☀️';
 $('btnTheme').onclick = () => {
@@ -1116,16 +856,14 @@ $('btnTheme').onclick = () => {
   document.documentElement.setAttribute('data-theme', state.theme);
   localStorage.setItem('retech-theme', state.theme);
   $('btnTheme').textContent = state.theme === 'dark' ? '🌙' : '☀️';
-  if (state.chart) {
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
-    state.chart.data.datasets[0].borderColor = accent;
-  }
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  if (state.chart) state.chart.data.datasets[0].borderColor = accent;
+  if (state.multiChart) state.multiChart.data.datasets.forEach(ds => ds.borderColor = ds._color);
 };
 
-/* =============== RESPONSIVE MENU =============== */
+/* ---------- RESPONSIVE MENU ---------- */
 function updateResponsive() {
   const mobile = window.innerWidth <= 768;
-  const tablet = window.innerWidth <= 1100;
   $('btnMenu').style.display = mobile ? 'inline-flex' : 'none';
   $('btnRight').style.display = mobile ? 'inline-flex' : 'none';
 }
@@ -1159,16 +897,16 @@ document.querySelectorAll('.mobile-nav button').forEach(b => {
   };
 });
 
-/* =============== PAUSE =============== */
+/* ---------- PAUSE ---------- */
 $('btnPause').onclick = () => {
   state.paused = !state.paused;
   document.body.classList.toggle('paused', state.paused);
   $('btnPause').textContent = state.paused ? '▶' : '⏸';
-  $('btnPause').title = state.paused ? 'Resume stream' : 'Pause stream';
   log('SYS', state.paused ? 'Stream dijeda' : 'Stream dilanjutkan');
+  toast(state.paused ? '⏸ Stream dijeda' : '▶ Stream dilanjutkan', 'info', 2000);
 };
 
-/* =============== CONNECTION =============== */
+/* ---------- CONNECTION ---------- */
 $('btnAddConn').onclick = () => {
   ['cName','cHost','cUser','cPass'].forEach(id => $(id).value = '');
   $('cPort').value = '8081';
@@ -1198,18 +936,16 @@ function connectBroker(cfg) {
   const url = `${cfg.proto}://${cfg.host}:${cfg.port}${cfg.path}`;
   const opts = {
     clientId: 'retech_' + Math.random().toString(16).slice(2, 10),
-    clean: true,
-    connectTimeout: 8000,
-    reconnectPeriod: 3000,
+    clean: true, connectTimeout: 8000, reconnectPeriod: 3000,
   };
   if (cfg.user) opts.username = cfg.user;
   if (cfg.pass) opts.password = cfg.pass;
 
   let client;
   try { client = mqtt.connect(url, opts); }
-  catch (e) { log('ERR', `${cfg.name}: ${e.message}`); return; }
+  catch (e) { log('ERR', `${cfg.name}: ${e.message}`); toast('Gagal connect: ' + e.message, 'error'); return; }
 
-  const conn = { ...cfg, id, url, client, status: 'connecting', msgQueue: 0 };
+  const conn = { ...cfg, id, url, client, status: 'connecting' };
   state.connections.set(id, conn);
   renderConnPills();
 
@@ -1217,15 +953,16 @@ function connectBroker(cfg) {
     conn.status = 'online';
     renderConnPills();
     log('SYS', `${cfg.name} → ${url}`);
+    toast(`✅ Terhubung ke ${cfg.name}`, 'success', 2500);
     client.subscribe('#', { qos: 0 }, err => {
-      if (err) log('ERR', `${cfg.name} subscribe gagal: ${err.message}`);
+      if (err) log('ERR', `${cfg.name} subscribe: ${err.message}`);
     });
   });
   client.on('message', (topic, payload) => {
     if (state.paused) return;
     onMessage(id, topic, payload.toString());
   });
-  client.on('error', err => log('ERR', `${cfg.name}: ${err.message}`));
+  client.on('error', err => { log('ERR', `${cfg.name}: ${err.message}`); });
   client.on('close', () => { conn.status = 'offline'; renderConnPills(); });
 }
 
@@ -1243,21 +980,18 @@ function renderConnPills() {
       for (const k of [...state.topics.keys()]) if (k.startsWith(conn.id + '::')) state.topics.delete(k);
       renderConnPills();
       markDirty('tree'); scheduleFlush();
+      toast(`Disconnect dari ${conn.name}`, 'warn', 2000);
     };
     box.appendChild(pill);
   }
 }
 
-/* =============== MESSAGE HANDLER =============== */
+/* ---------- MESSAGE ---------- */
 function onMessage(connId, topic, payload) {
   const key = connId + '::' + topic;
   let rec = state.topics.get(key);
   if (!rec) {
-    rec = {
-      connId, topic, count: 0,
-      lastPayload: null, prevPayload: null,
-      lastTime: 0, history: [], watched: false,
-    };
+    rec = { connId, topic, count: 0, lastPayload: null, prevPayload: null, lastTime: 0, history: [], watched: false };
     state.topics.set(key, rec);
   }
   rec.prevPayload = rec.lastPayload;
@@ -1265,18 +999,17 @@ function onMessage(connId, topic, payload) {
   rec.lastTime = now();
   rec.count++;
   rec.history.push({ t: rec.lastTime, p: payload });
-  if (rec.history.length > 200) rec.history.shift(); // ring buffer
+  if (rec.history.length > 500) rec.history.shift();
 
   checkAlerts(rec);
-
   markDirty('tree', key);
   if (rec.watched) markDirty('watch');
   if (state.selectedKey === key) state.dirtyKeys.add(key);
-  if (state.chartTopicKey === key) scheduleChart();
+  if (state.chartTopicKey === key || state.multiTags.some(t => t.key === key)) scheduleChart();
   scheduleFlush();
 }
 
-/* =============== TREE =============== */
+/* ---------- TREE ---------- */
 function buildTree() {
   const root = { name: '', children: new Map(), key: null, count: 0 };
   for (const [key, rec] of state.topics) {
@@ -1306,7 +1039,6 @@ function matchSearch(rec) {
   return false;
 }
 function treeSignature(root) {
-  // untuk deteksi perubahan struktur
   let s = '';
   const walk = (n, p) => {
     const keys = [...n.children.keys()].sort();
@@ -1360,7 +1092,6 @@ function renderChildren(node, parent, pathPrefix) {
       }
       if (child.key) {
         selectTopic(child.key);
-        // auto-close di mobile
         if (window.innerWidth <= 768) {
           $('sidebar').classList.remove('open');
           $('overlay').classList.remove('show');
@@ -1391,16 +1122,13 @@ function sparkSvg(arr) {
   return `<svg class="spark" viewBox="0 0 46 14"><path d="${d}" fill="none" stroke="currentColor" stroke-width="1.3" opacity="0.7"/></svg>`;
 }
 
-/* =============== SELECT TOPIC =============== */
+/* ---------- SELECT TOPIC ---------- */
 function selectTopic(key) {
   state.selectedKey = key;
   const rec = state.topics.get(key);
   if (!rec) return;
   $('selectedTopic').textContent = rec.topic;
-  $('selectedMeta').innerHTML = `
-    <span>📨 ${rec.count} pesan</span>
-    <span>🕐 ${new Date(rec.lastTime).toLocaleTimeString()}</span>
-  `;
+  $('selectedMeta').innerHTML = `<span>📨 ${rec.count} pesan</span><span>🕐 ${new Date(rec.lastTime).toLocaleTimeString()}</span>`;
   $('pubTopic').value = rec.topic;
   $('btnWatch').innerHTML = rec.watched ? '⭐<span class="lbl"> Unwatch</span>' : '⭐<span class="lbl"> Watch</span>';
   renderPayload(key);
@@ -1409,7 +1137,10 @@ function selectTopic(key) {
   state.chartTopicKey = key;
   scheduleChart();
   state.lastTreeSignature = '';
-  markDirty('tree'); scheduleFlush();
+  markDirty('tree');
+  scheduleFlush();
+  // Replay auto reset ke topik baru
+  setupReplayForTopic(key);
 }
 
 function renderPayload(key) {
@@ -1417,16 +1148,11 @@ function renderPayload(key) {
   if (!rec) return;
   const el = $('payloadView');
   const p = rec.lastPayload ?? '(null)';
-  if (p.length > 20000) {
-    el.textContent = p.slice(0, 20000) + '\n\n… (payload terlalu panjang, dipotong 20KB)';
-    return;
-  }
+  if (p.length > 20000) { el.textContent = p.slice(0, 20000) + '\n\n… dipotong 20KB'; return; }
   try {
     const obj = JSON.parse(p);
     el.innerHTML = syntaxHighlight(JSON.stringify(obj, null, 2));
-  } catch {
-    el.textContent = p;
-  }
+  } catch { el.textContent = p; }
 }
 function syntaxHighlight(json) {
   return esc(json).replace(
@@ -1440,12 +1166,12 @@ function syntaxHighlight(json) {
     });
 }
 
-/* =============== DIFF =============== */
+/* ---------- DIFF ---------- */
 function renderDiff(key) {
   const rec = state.topics.get(key);
   const box = $('diffView');
   if (!rec || rec.prevPayload === null) {
-    box.innerHTML = '<div class="empty-hint" style="grid-column:1/-1">Pilih topik yang memiliki minimal 2 pesan untuk melihat perbandingan</div>';
+    box.innerHTML = '<div class="empty-hint" style="grid-column:1/-1">Pilih topik yang memiliki minimal 2 pesan</div>';
     return;
   }
   let a, b;
@@ -1456,8 +1182,7 @@ function renderDiff(key) {
     const same = a === b;
     box.innerHTML = `
       <div class="diff-card"><h4>Sebelum</h4><div class="diff-val ${same ? '' : 'diff-removed'}">${esc(a)}</div></div>
-      <div class="diff-card"><h4>Sesudah</h4><div class="diff-val ${same ? '' : 'diff-added'}">${esc(b)}</div></div>
-    `;
+      <div class="diff-card"><h4>Sesudah</h4><div class="diff-val ${same ? '' : 'diff-added'}">${esc(b)}</div></div>`;
     return;
   }
   const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
@@ -1473,11 +1198,10 @@ function renderDiff(key) {
   }
   box.innerHTML = `
     <div class="diff-card"><h4>Sebelum</h4>${rowsA.join('')}</div>
-    <div class="diff-card"><h4>Sesudah</h4>${rowsB.join('')}</div>
-  `;
+    <div class="diff-card"><h4>Sesudah</h4>${rowsB.join('')}</div>`;
 }
 
-/* =============== HISTORY =============== */
+/* ---------- HISTORY ---------- */
 function renderHistory(key) {
   const rec = state.topics.get(key);
   const tb = $('historyTable').querySelector('tbody');
@@ -1494,7 +1218,7 @@ function renderHistory(key) {
   tb.appendChild(frag);
 }
 
-/* =============== CHART =============== */
+/* ---------- EXTRACT VALUE (JSONPath sederhana) ---------- */
 function extractValue(payload, path) {
   if (!path) {
     const n = parseFloat(payload);
@@ -1511,68 +1235,35 @@ function extractValue(payload, path) {
   const n = parseFloat(cur);
   return isNaN(n) ? null : n;
 }
+
+/* ---------- SINGLE CHART ---------- */
 function updateChart(key) {
   if (!key) return;
   const rec = state.topics.get(key);
   if (!rec) return;
   const win = state.chartWindow * 1000;
-  const cutoff = now() - win;
+  const cutoff = win === 0 ? 0 : now() - win;
   const points = [];
   for (const h of rec.history) {
     if (h.t < cutoff) continue;
     const v = extractValue(h.p, state.jsonPath);
     if (v !== null) points.push({ x: h.t, y: v });
   }
-
   if (!state.chart) {
     const ctx = $('chart').getContext('2d');
     const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
     state.chart = new Chart(ctx, {
       type: 'line',
-      data: {
-        datasets: [{
-          label: rec.topic,
-          data: points,
-          borderColor: accent,
-          backgroundColor: 'rgba(99,102,241,0.12)',
-          tension: 0.3,
-          pointRadius: 2,
-          pointHoverRadius: 5,
-          borderWidth: 2,
-          fill: true,
-        }]
-      },
+      data: { datasets: [{ label: rec.topic, data: points, borderColor: accent, backgroundColor: 'rgba(99,102,241,0.12)', tension: 0.3, pointRadius: 2, pointHoverRadius: 5, borderWidth: 2, fill: true }] },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        parsing: false,
-        normalized: true,
-        spanGaps: true,
+        responsive: true, maintainAspectRatio: false, animation: false,
+        parsing: false, normalized: true, spanGaps: true,
         interaction: { intersect: false, mode: 'nearest' },
         scales: {
-          x: {
-            type: 'linear',
-            ticks: {
-              color: '#94a3b8',
-              maxTicksLimit: 6,
-              callback: v => new Date(v).toLocaleTimeString().slice(0, 8),
-            },
-            grid: { color: 'rgba(148,163,184,0.1)' },
-          },
-          y: {
-            ticks: { color: '#94a3b8', maxTicksLimit: 6 },
-            grid: { color: 'rgba(148,163,184,0.1)' },
-          }
+          x: { type: 'linear', ticks: { color: '#94a3b8', maxTicksLimit: 6, callback: v => new Date(v).toLocaleTimeString().slice(0, 8) }, grid: { color: 'rgba(148,163,184,0.1)' } },
+          y: { ticks: { color: '#94a3b8', maxTicksLimit: 6 }, grid: { color: 'rgba(148,163,184,0.1)' } }
         },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              title: items => new Date(items[0].parsed.x).toLocaleTimeString(),
-            }
-          }
-        }
+        plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => new Date(items[0].parsed.x).toLocaleTimeString() } } }
       }
     });
   } else {
@@ -1582,7 +1273,226 @@ function updateChart(key) {
   }
 }
 
-/* =============== PUBLISH =============== */
+/* ---------- MULTI CHART ---------- */
+function addToMultiChart() {
+  if (!state.selectedKey) { toast('Pilih topik dulu', 'warn'); return; }
+  if (state.multiTags.some(t => t.key === state.selectedKey)) { toast('Topik sudah ada di chart', 'info', 2000); return; }
+  const rec = state.topics.get(state.selectedKey);
+  if (!rec) return;
+  state.multiTags.push({ key: state.selectedKey, topic: rec.topic, color: CHART_COLORS[state.multiTags.length % CHART_COLORS.length], visible: true });
+  localStorage.setItem('retech-multitags', JSON.stringify(state.multiTags));
+  renderChartTags();
+  markDirty('multi'); scheduleFlush();
+  toast(`📊 ${rec.topic} ditambahkan ke multi-chart`, 'success', 2000);
+}
+$('btnAddToChart').onclick = addToMultiChart;
+
+function renderChartTags() {
+  const box = $('chartTags');
+  box.innerHTML = '';
+  if (state.multiTags.length === 0) {
+    box.innerHTML = '<div class="empty-hint">Belum ada topik di chart. Klik 📊 Chart+ atau tambah dari Watchlist.</div>';
+    return;
+  }
+  for (let i = 0; i < state.multiTags.length; i++) {
+    const t = state.multiTags[i];
+    const el = document.createElement('div');
+    el.className = 'chart-tag';
+    el.innerHTML = `
+      <span class="color-dot" style="background:${t.color}"></span>
+      <span class="toggle ${t.visible ? '' : 'off'}" style="cursor:pointer">${esc(t.topic)}</span>
+      <span class="x" title="Hapus">✕</span>
+    `;
+    el.querySelector('.toggle').onclick = () => {
+      t.visible = !t.visible;
+      localStorage.setItem('retech-multitags', JSON.stringify(state.multiTags));
+      renderChartTags();
+      markDirty('multi'); scheduleFlush();
+    };
+    el.querySelector('.x').onclick = () => {
+      state.multiTags.splice(i, 1);
+      localStorage.setItem('retech-multitags', JSON.stringify(state.multiTags));
+      renderChartTags();
+      markDirty('multi'); scheduleFlush();
+    };
+    box.appendChild(el);
+  }
+}
+
+function updateMultiChart() {
+  const ctx = $('multiChart');
+  if (!ctx) return;
+  const win = state.multiWindow * 1000;
+  const cutoff = win === 0 ? 0 : now() - win;
+
+  const datasets = [];
+  for (const t of state.multiTags) {
+    const rec = state.topics.get(t.key);
+    if (!rec) continue;
+    const points = [];
+    for (const h of rec.history) {
+      if (h.t < cutoff) continue;
+      const v = extractValue(h.p, state.multiJsonPath);
+      if (v !== null) points.push({ x: h.t, y: v });
+    }
+    datasets.push({
+      label: t.topic,
+      data: points,
+      borderColor: t.color,
+      backgroundColor: t.color + '22',
+      tension: 0.3, pointRadius: 2, pointHoverRadius: 5,
+      borderWidth: 2, fill: false,
+      hidden: !t.visible,
+      _color: t.color,
+      yAxisID: state.multiDualAxis && datasets.length > 0 ? 'y1' : 'y',
+    });
+  }
+  if (!state.multiChart) {
+    state.multiChart = new Chart(ctx.getContext('2d'), {
+      type: 'line',
+      data: { datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        parsing: false, normalized: true, spanGaps: true,
+        interaction: { intersect: false, mode: 'nearest' },
+        scales: {
+          x: { type: 'linear', ticks: { color: '#94a3b8', maxTicksLimit: 6, callback: v => new Date(v).toLocaleTimeString().slice(0, 8) }, grid: { color: 'rgba(148,163,184,0.1)' } },
+          y: { position: 'left', ticks: { color: '#94a3b8', maxTicksLimit: 6 }, grid: { color: 'rgba(148,163,184,0.1)' } },
+          y1: { position: 'right', display: state.multiDualAxis, ticks: { color: '#94a3b8', maxTicksLimit: 6 }, grid: { drawOnChartArea: false } }
+        },
+        plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => new Date(items[0].parsed.x).toLocaleTimeString() } } }
+      }
+    });
+  } else {
+    state.multiChart.data.datasets = datasets;
+    state.multiChart.options.scales.y1.display = state.multiDualAxis;
+    state.multiChart.update('none');
+  }
+}
+
+$('btnApplyMulti').onclick = () => {
+  state.multiJsonPath = $('multiJsonPath').value.trim();
+  state.multiWindow = parseInt($('multiWindow').value, 10);
+  state.multiDualAxis = $('multiDualAxis').checked;
+  localStorage.setItem('retech-multijsonpath', state.multiJsonPath);
+  localStorage.setItem('retech-multidual', state.multiDualAxis ? '1' : '0');
+  markDirty('multi'); scheduleFlush();
+};
+
+/* ---------- REPLAY ---------- */
+function setupReplayForTopic(key) {
+  const rec = state.topics.get(key);
+  const slider = $('replaySlider');
+  if (!rec || rec.history.length === 0) {
+    slider.max = 0; slider.value = 0;
+    $('replayTopic').textContent = rec?.topic || '-';
+    $('replayProgress').textContent = '0 / 0';
+    $('replayTs').textContent = '-';
+    $('replayPreview').textContent = '(belum ada history)';
+    state.replay.key = null;
+    return;
+  }
+  state.replay.key = key;
+  state.replay.index = rec.history.length - 1; // mulai dari akhir (frame terbaru)
+  slider.min = 0;
+  slider.max = Math.max(0, rec.history.length - 1);
+  slider.value = state.replay.index;
+  $('replayTopic').textContent = rec.topic;
+  updateReplayFrame();
+}
+
+function updateReplayFrame() {
+  const key = state.replay.key;
+  if (!key) return;
+  const rec = state.topics.get(key);
+  if (!rec || rec.history.length === 0) return;
+  const idx = Math.max(0, Math.min(state.replay.index, rec.history.length - 1));
+  const frame = rec.history[idx];
+  $('replaySlider').value = idx;
+  $('replayProgress').textContent = `${idx + 1} / ${rec.history.length}`;
+  $('replayTs').textContent = new Date(frame.t).toLocaleString();
+  const p = frame.p.length > 2000 ? frame.p.slice(0, 2000) + '…' : frame.p;
+  $('replayPreview').textContent = p;
+}
+
+function updateReplayInfo() {
+  // dipanggil saat ada pesan baru di topik replay
+  if (!state.replay.key) return;
+  const rec = state.topics.get(state.replay.key);
+  if (!rec) return;
+  const slider = $('replaySlider');
+  slider.max = Math.max(0, rec.history.length - 1);
+  if (!state.replay.playing) {
+    // auto-follow frame terbaru kalau tidak sedang play
+    state.replay.index = rec.history.length - 1;
+    updateReplayFrame();
+  }
+}
+
+function startReplay() {
+  if (state.replay.playing) return;
+  if (!state.replay.key) {
+    if (state.selectedKey) setupReplayForTopic(state.selectedKey);
+    else { toast('Pilih topik dulu', 'warn'); return; }
+  }
+  const rec = state.topics.get(state.replay.key);
+  if (!rec || rec.history.length < 2) { toast('Butuh minimal 2 pesan', 'warn'); return; }
+  state.replay.playing = true;
+  $('replayPlay').textContent = '⏸ Pause';
+  const speed = state.replay.speed;
+  const tick = () => {
+    if (!state.replay.playing) return;
+    const r = state.topics.get(state.replay.key);
+    if (!r) { stopReplay(); return; }
+    state.replay.index++;
+    if (state.replay.index >= r.history.length) {
+      if (state.replay.loop) state.replay.index = 0;
+      else { stopReplay(); state.replay.index = r.history.length - 1; updateReplayFrame(); return; }
+    }
+    updateReplayFrame();
+    state.replay.timer = setTimeout(tick, 300 / speed);
+  };
+  state.replay.timer = setTimeout(tick, 300 / speed);
+}
+function stopReplay() {
+  state.replay.playing = false;
+  $('replayPlay').textContent = '▶ Play';
+  if (state.replay.timer) { clearTimeout(state.replay.timer); state.replay.timer = null; }
+}
+
+$('replayPlay').onclick = () => {
+  if (state.replay.playing) stopReplay();
+  else startReplay();
+};
+$('replayStepBack').onclick = () => {
+  state.replay.index = Math.max(0, state.replay.index - 1);
+  updateReplayFrame();
+};
+$('replayStepFwd').onclick = () => {
+  const rec = state.topics.get(state.replay.key);
+  if (!rec) return;
+  state.replay.index = Math.min(rec.history.length - 1, state.replay.index + 1);
+  updateReplayFrame();
+};
+$('replaySlider').oninput = e => {
+  state.replay.index = parseInt(e.target.value, 10);
+  updateReplayFrame();
+};
+$('replaySpeed').onchange = e => {
+  state.replay.speed = parseFloat(e.target.value);
+};
+$('replayLoop').onclick = () => {
+  state.replay.loop = !state.replay.loop;
+  $('replayLoop').textContent = `🔁 Loop: ${state.replay.loop ? 'ON' : 'OFF'}`;
+  $('replayLoop').classList.toggle('ghost', !state.replay.loop);
+};
+$('replayReset').onclick = () => {
+  stopReplay();
+  state.replay.index = 0;
+  updateReplayFrame();
+};
+
+/* ---------- PUBLISH ---------- */
 $('btnPublish').onclick = () => {
   const topic = $('pubTopic').value.trim();
   const payload = $('pubPayload').value;
@@ -1593,22 +1503,18 @@ $('btnPublish').onclick = () => {
   let sent = 0;
   for (const conn of state.connections.values()) {
     if (conn.status !== 'online') continue;
-    conn.client.publish(topic, payload, { qos, retain }, err => {
-      if (err) log('ERR', `publish ${conn.name}: ${err.message}`);
-    });
+    conn.client.publish(topic, payload, { qos, retain }, err => { if (err) log('ERR', `publish ${conn.name}: ${err.message}`); });
     sent++;
   }
   log('PUB', `→ ${topic} [q${qos}${retain ? ' R' : ''}] ×${sent}`);
+  toast(`📤 Published ke ${sent} broker`, 'success', 2000);
 };
 
-/* =============== WATCHLIST =============== */
+/* ---------- WATCHLIST ---------- */
 function renderWatchlist() {
   const box = $('watchlist');
   const watched = [...state.topics.values()].filter(r => r.watched);
-  if (watched.length === 0) {
-    box.innerHTML = '<div class="empty-hint">Belum ada topik di-watch</div>';
-    return;
-  }
+  if (watched.length === 0) { box.innerHTML = '<div class="empty-hint">Belum ada topik di-watch</div>'; return; }
   const frag = document.createDocumentFragment();
   for (const rec of watched) {
     const key = rec.connId + '::' + rec.topic;
@@ -1617,10 +1523,7 @@ function renderWatchlist() {
     div.innerHTML = `<span class="t" title="${esc(rec.topic)}">${esc(rec.topic)}</span><span class="v">${esc((rec.lastPayload || '').slice(0, 30))}</span>`;
     div.querySelector('.t').onclick = () => {
       selectTopic(key);
-      if (window.innerWidth <= 768) {
-        $('rightbar').classList.remove('open');
-        $('overlay').classList.remove('show');
-      }
+      if (window.innerWidth <= 768) { $('rightbar').classList.remove('open'); $('overlay').classList.remove('show'); }
     };
     frag.appendChild(div);
   }
@@ -1633,6 +1536,7 @@ $('btnWatch').onclick = () => {
   if (!rec) return;
   rec.watched = !rec.watched;
   $('btnWatch').innerHTML = rec.watched ? '⭐<span class="lbl"> Unwatch</span>' : '⭐<span class="lbl"> Watch</span>';
+  toast(rec.watched ? '⭐ Ditambahkan ke watchlist' : 'Dihapus dari watchlist', 'info', 1800);
   markDirty('watch'); markDirty('tree'); state.lastTreeSignature = ''; scheduleFlush();
 };
 $('btnAddWatch').onclick = () => {
@@ -1642,21 +1546,19 @@ $('btnAddWatch').onclick = () => {
   markDirty('watch'); markDirty('tree'); state.lastTreeSignature = ''; scheduleFlush();
 };
 
-/* =============== ALERTS =============== */
+/* ---------- ALERTS ---------- */
 $('btnAskNotif').onclick = () => {
   if ('Notification' in window) {
     Notification.requestPermission().then(p => {
       $('btnAskNotif').textContent = p === 'granted' ? '🔔' : '🔕';
       log('SYS', 'Notifikasi: ' + p);
+      toast(p === 'granted' ? '🔔 Notifikasi diaktifkan' : 'Notifikasi diblokir', p === 'granted' ? 'success' : 'warn', 2500);
     });
   }
 };
 function renderAlerts() {
   const box = $('alerts');
-  if (state.alerts.length === 0) {
-    box.innerHTML = '<div class="empty-hint">Belum ada alert</div>';
-    return;
-  }
+  if (state.alerts.length === 0) { box.innerHTML = '<div class="empty-hint">Belum ada alert</div>'; return; }
   const frag = document.createDocumentFragment();
   for (const a of state.alerts) {
     const div = document.createElement('div');
@@ -1689,16 +1591,14 @@ function checkAlerts(rec) {
     if (hit && !a.fired) {
       a.fired = true;
       log('ALT', `⚠ ${rec.topic}: ${v} ${a.op} ${a.val}${a.note ? ' — ' + a.note : ''}`);
+      toast(`🔔 ALERT: ${rec.topic} ${a.op} ${a.val}`, 'error', 5000);
       if (Notification.permission === 'granted') {
         try { new Notification('Re-Tech MQTT Alert', { body: `${rec.topic}\n${v} ${a.op} ${a.val}\n${a.note || ''}` }); } catch {}
       }
       changed = true;
-    } else if (!hit && a.fired) {
-      a.fired = false;
-      changed = true;
-    }
+    } else if (!hit && a.fired) { a.fired = false; changed = true; }
   }
-  if (changed) { markDirty('alerts'); }
+  if (changed) markDirty('alerts');
 }
 $('btnAddAlert').onclick = () => {
   $('aTopic').value = state.selectedKey ? state.topics.get(state.selectedKey).topic : '';
@@ -1720,10 +1620,11 @@ $('btnSaveAlert').onclick = () => {
   state.alerts.push(a);
   $('alertModal').classList.remove('show');
   markDirty('alerts'); scheduleFlush();
-  log('SYS', `Alert ditambahkan: ${a.topic} ${a.op} ${a.val}`);
+  log('SYS', `Alert: ${a.topic} ${a.op} ${a.val}`);
+  toast('🔔 Alert ditambahkan', 'success', 2000);
 };
 
-/* =============== TABS =============== */
+/* ---------- TABS ---------- */
 document.querySelectorAll('.tab').forEach(t => {
   t.onclick = () => {
     document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
@@ -1731,10 +1632,15 @@ document.querySelectorAll('.tab').forEach(t => {
     t.classList.add('active');
     $('tab-' + t.dataset.tab).classList.add('active');
     if (t.dataset.tab === 'chart' && state.chart) setTimeout(() => state.chart.resize(), 50);
+    if (t.dataset.tab === 'multi' && state.multiChart) setTimeout(() => state.multiChart.resize(), 50);
+    if (t.dataset.tab === 'replay') {
+      if (!state.replay.key && state.selectedKey) setupReplayForTopic(state.selectedKey);
+      else updateReplayInfo();
+    }
   };
 });
 
-/* =============== CHART CONTROLS =============== */
+/* ---------- CHART CONTROLS ---------- */
 $('btnApplyChart').onclick = () => {
   state.jsonPath = $('jsonPath').value.trim();
   state.chartWindow = parseInt($('chartWindow').value, 10);
@@ -1745,7 +1651,7 @@ $('chartWindow').onchange = () => {
   scheduleChart();
 };
 
-/* =============== CLEAR =============== */
+/* ---------- CLEAR ---------- */
 $('btnClearPayload').onclick = () => {
   if (!state.selectedKey) return;
   const rec = state.topics.get(state.selectedKey);
@@ -1757,34 +1663,31 @@ $('btnClearPayload').onclick = () => {
   renderPayload(state.selectedKey);
   renderDiff(state.selectedKey);
   renderHistory(state.selectedKey);
+  setupReplayForTopic(state.selectedKey);
   state.lastTreeSignature = '';
   markDirty('tree'); scheduleFlush();
 };
 
-/* =============== SEARCH (debounced) =============== */
-let searchTimer;
-$('globalSearch').oninput = e => {
-  clearTimeout(searchTimer);
-  const v = e.target.value.trim();
-  searchTimer = setTimeout(() => {
-    state.search = v;
-    state.lastTreeSignature = '';
-    markDirty('tree'); scheduleFlush();
-  }, 200);
-};
+/* ---------- SEARCH ---------- */
+const onSearch = debounce(v => {
+  state.search = v.trim();
+  state.lastTreeSignature = '';
+  markDirty('tree'); scheduleFlush();
+}, 200);
+$('globalSearch').oninput = e => onSearch(e.target.value);
 
-/* =============== EXPORT / IMPORT =============== */
+/* ---------- EXPORT / IMPORT ---------- */
 $('btnExport').onclick = () => {
   const data = {
-    version: 1,
+    version: 2,
     app: 'Re-Tech MQTT Studio',
     exportedAt: new Date().toISOString(),
     topics: [...state.topics.values()].map(r => ({
-      topic: r.topic, count: r.count,
-      lastPayload: r.lastPayload, lastTime: r.lastTime,
-      watched: r.watched, history: r.history.slice(-50),
+      topic: r.topic, count: r.count, lastPayload: r.lastPayload,
+      lastTime: r.lastTime, watched: r.watched, history: r.history.slice(-50),
     })),
     alerts: state.alerts,
+    multiTags: state.multiTags,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
@@ -1792,6 +1695,7 @@ $('btnExport').onclick = () => {
   a.download = `retech-mqtt-${Date.now()}.json`;
   a.click();
   log('SYS', 'Sesi di-export');
+  toast('⬇ Sesi di-export', 'success', 2000);
 };
 $('importFile').onchange = e => {
   const file = e.target.files[0];
@@ -1811,19 +1715,46 @@ $('importFile').onchange = e => {
         }
       }
       if (data.alerts) state.alerts = data.alerts;
+      if (data.multiTags) {
+        state.multiTags = data.multiTags;
+        localStorage.setItem('retech-multitags', JSON.stringify(state.multiTags));
+        renderChartTags();
+      }
       state.lastTreeSignature = '';
-      markDirty('tree'); markDirty('watch'); markDirty('alerts'); scheduleFlush();
+      markDirty('tree'); markDirty('watch'); markDirty('alerts'); markDirty('multi'); scheduleFlush();
       log('SYS', `Import ${data.topics?.length || 0} topik`);
-    } catch (err) { log('ERR', 'Import gagal: ' + err.message); }
+      toast(`⬆ Import ${data.topics?.length || 0} topik`, 'success', 2500);
+    } catch (err) { log('ERR', 'Import: ' + err.message); toast('Import gagal: ' + err.message, 'error'); }
   };
   reader.readAsText(file);
   e.target.value = '';
 };
 
-/* =============== INITIAL =============== */
-log('SYS', 'Re-Tech MQTT Studio siap. Klik "+ Broker" untuk mulai.');
+/* ---------- KEYBOARD SHORTCUTS ---------- */
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input, textarea, select')) return;
+  if (e.key === '/') { e.preventDefault(); $('globalSearch').focus(); }
+  if (e.key === 'Escape') { $('sidebar').classList.remove('open'); $('rightbar').classList.remove('open'); $('overlay').classList.remove('show'); }
+  if (e.key === ' ') { e.preventDefault(); $('btnPause').click(); }
+  if (e.key === 'p' && e.ctrlKey) { e.preventDefault(); $('btnPublish').click(); }
+});
+
+/* ---------- INITIAL RENDER ---------- */
+renderChartTags();
+renderWatchlist();
+renderAlerts();
+$('multiJsonPath').value = state.multiJsonPath;
+$('multiDualAxis').checked = state.multiDualAxis;
+log('SYS', 'Re-Tech MQTT Studio v2.0 siap — PWA, Replay, Multi-Chart aktif');
 markDirty('watch'); markDirty('alerts');
 scheduleFlush();
+
+/* ---------- BELUM DIPAKAI: CLEANUP ---------- */
+window.addEventListener('beforeunload', () => {
+  for (const conn of state.connections.values()) {
+    try { conn.client.end(true); } catch {}
+  }
+});
 </script>
 </body>
 </html>
